@@ -945,10 +945,65 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
 
         self.send_error(404)
 
+    def _read_form(self):
+        """Read form-encoded POST body."""
+        length = int(self.headers.get("Content-Length", 0))
+        if length == 0:
+            return {}
+        body = self.rfile.read(length).decode("utf-8")
+        result = {}
+        for pair in body.split("&"):
+            if "=" in pair:
+                k, v = pair.split("=", 1)
+                from urllib.parse import unquote
+                result[unquote(k)] = unquote(v)
+        return result
+
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
         token = self._get_token()
+
+        # ── Terminal page (form POST, no JS) ──
+        if path == "/t":
+            form = self._read_form()
+            pw = form.get("s", "")
+            msg = form.get("q", "").strip()
+            # Read template
+            html_path = os.path.join(SERVER_DIR, "terminal.html")
+            try:
+                with open(html_path, "r", encoding="utf-8") as f:
+                    html = f.read()
+            except:
+                return self.send_error(500)
+
+            if pw != "Wyh@235711" or not msg:
+                # Just show the form, no response
+                body = html.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+
+            # Process message
+            reply, err = PulseAgent.process(self.client_address[0], msg)
+            response_text = err if err else reply
+
+            # Inject response into HTML
+            resp_html = '<div class="m you">' + msg.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;") + '</div>\n'
+            resp_html += '<div class="m clone">' + response_text.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;") + '</div>\n'
+            html = html.replace('<div class="m sys">', resp_html + '<div class="m sys">')
+
+            body = html.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         data = self._read_body()
 
         # ── Internal: monitoring pulse (no token required) ──

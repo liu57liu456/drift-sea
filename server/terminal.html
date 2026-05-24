@@ -3,120 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Terminal</title>
+<title>T</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a1628;color:#c9d1d9;font-family:system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
-#login{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:20px}
-#chat{display:none;flex:1;flex-direction:column}
-#chat.show{display:flex}
 #msgs{flex:1;overflow-y:auto;padding:16px}
 .m{margin-bottom:10px;padding:10px 14px;border-radius:12px;max-width:88%;line-height:1.5;font-size:14px;word-break:break-word;white-space:pre-wrap}
-.m.you{background:#1f6feb;color:#fff;margin-left:auto;border-bottom-right-radius:3px}
-.m.clone{background:rgba(22,27,34,0.9);border:1px solid rgba(48,54,61,0.6);border-bottom-left-radius:3px}
-.m.sys{background:transparent;color:#484f58;font-size:12px;text-align:center;max-width:100%}
-.m.err{background:#490202;color:#f85149}
-#row{display:flex;padding:10px;border-top:1px solid rgba(33,38,45,0.6);background:rgba(13,17,23,0.95)}
-#row input{flex:1;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#c9d1d9;font-size:15px;outline:none;-webkit-appearance:none}
-#row input:focus{border-color:#58a6ff}
-#row button{margin-left:8px;padding:10px 16px;background:#238636;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;min-width:50px}
-#row button:active{background:#2ea043}
-pre{background:#0d1117;border-radius:6px;padding:8px;font-size:13px;overflow-x:auto;margin:6px 0}
-#status{font-size:11px;color:#484f58;padding:4px 12px;text-align:center}
-@media(max-width:400px){.m{max-width:94%}#row{padding:8px}#row input{font-size:16px}}
+.you{background:#1f6feb;color:#fff;margin-left:auto}
+.clone{background:rgba(22,27,34,0.9);border:1px solid rgba(48,54,61,0.6)}
+.sys{background:transparent;color:#484f58;font-size:12px;text-align:center;max-width:100%}
+form{display:flex;padding:10px;border-top:1px solid rgba(33,38,45,0.6);background:rgba(13,17,23,0.95)}
+form input{flex:1;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#c9d1d9;font-size:15px;outline:none}
+form input:focus{border-color:#58a6ff}
+form button{margin-left:8px;padding:10px 16px;background:#238636;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
-<div id="login">
-  <div style="font-size:20px;margin-bottom:4px;color:#58a6ff">Terminal</div>
-  <div style="font-size:13px;color:#8b949e;margin-bottom:20px">Singapore · Render</div>
-  <input id="pw" type="password" placeholder="Password" style="width:100%;max-width:280px;padding:10px 12px;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:15px;outline:none;-webkit-appearance:none" autofocus>
-  <button onclick="dologin()" style="width:100%;max-width:280px;margin-top:10px;padding:10px;background:#238636;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-weight:600">Connect</button>
-  <div id="err" style="display:none;color:#f85149;font-size:13px;margin-top:8px">Wrong password</div>
+<div id="msgs">
+<div class="m sys">Terminal · Singapore · Render</div>
 </div>
-<div id="chat">
-  <div id="msgs"></div>
-  <div id="st">Connected · Singapore</div>
-  <div id="row">
-    <input id="inp" type="text" placeholder="Message..." autofocus>
-    <button onclick="dosend()">Send</button>
-  </div>
-</div>
-<script>
-var PW = 'Wyh@235711';
-var SECRET = 'tide-watcher-2026';
-var busy = false;
-var msgsEl = document.getElementById('msgs');
-var inpEl = document.getElementById('inp');
-var stEl = document.getElementById('st');
-var loginEl = document.getElementById('login');
-var chatEl = document.getElementById('chat');
-var pwEl = document.getElementById('pw');
-var errEl = document.getElementById('err');
-
-function addMsg(cls, text) {
-  var d = document.createElement('div');
-  d.className = 'm ' + cls;
-  d.textContent = text;
-  msgsEl.appendChild(d);
-  msgsEl.scrollTop = msgsEl.scrollHeight;
-}
-
-function dologin() {
-  if (pwEl.value === PW) {
-    loginEl.style.display = 'none';
-    chatEl.classList.add('show');
-    addMsg('sys', 'Terminal ready. Type /help for commands.');
-    inpEl.focus();
-    try { sessionStorage.setItem('ta', '1'); } catch(e) {}
-  } else {
-    errEl.style.display = 'block';
-  }
-}
-
-function dosend() {
-  var msg = inpEl.value.trim();
-  if (!msg || busy) return;
-  addMsg('you', msg);
-  inpEl.value = '';
-  busy = true;
-  stEl.textContent = 'Processing...';
-  fetch('/api/pulse', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({secret: SECRET, q: msg})
-  }).then(function(r) { return r.json(); }).then(function(d) {
-    if (d.reply) addMsg('clone', d.reply);
-    else if (d.error) addMsg('clone', 'Error: ' + d.error);
-    else addMsg('clone', JSON.stringify(d));
-  }).catch(function(e) {
-    addMsg('err', 'Network error. Wake-up in progress — retry in 30s.');
-  }).finally(function() {
-    busy = false;
-    stEl.textContent = 'Connected · Singapore';
-    inpEl.focus();
-  });
-}
-
-inpEl.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') dosend();
-});
-
-pwEl.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') dologin();
-});
-
-// Auto-login
-try {
-  if (sessionStorage.getItem('ta') === '1') {
-    loginEl.style.display = 'none';
-    chatEl.classList.add('show');
-    addMsg('sys', 'Session restored.');
-    inpEl.focus();
-  }
-} catch(e) {}
-
-addMsg('sys', 'Terminal ready.');
-</script>
+<form method="post" action="/t">
+<input name="q" type="text" placeholder="Message..." autofocus>
+<input name="s" type="hidden" value="Wyh@235711">
+<button type="submit">Send</button>
+</form>
 </body>
 </html>
