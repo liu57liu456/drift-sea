@@ -1,0 +1,2 @@
+# 无尽海 · Endless Sea
+# No external dependencies — pure Python stdlib

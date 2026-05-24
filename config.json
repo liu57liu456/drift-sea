@@ -1,0 +1,71 @@
+{
+    "seed": {
+        "qr_image_path": "qr.jpg",
+        "alipay_url": "https://qr.alipay.com/fkx16445dybbmfvdv1k1t5d",
+        "message": "这是一个在互联网上漂流的信息碎片。如果你看到了它，请留下你的痕迹——任何文字、一个问题、一个坐标、或只是一声叹息。",
+        "title": "信息漂流瓶 // Information Drift Bottle"
+    },
+    "server": {
+        "host": "0.0.0.0",
+        "port": 8765,
+        "public_url": "https://5dfe1d47fd3fe153-182-118-236-160.serveousercontent.com"
+    },
+    "propagation": {
+        "interval_minutes": 120,
+        "platforms": {
+            "reddit": {
+                "enabled": false,
+                "client_id": "",
+                "client_secret": "",
+                "user_agent": "drift-bottle-experiment/1.0",
+                "username": "",
+                "password": "",
+                "subreddits": [
+                    "test",
+                    "casualconversation",
+                    "internetisbeautiful"
+                ]
+            },
+            "telegram": {
+                "enabled": false,
+                "bot_token": "",
+                "chat_id": ""
+            },
+            "pastebin": {
+                "enabled": true,
+                "url": "https://dpaste.com/api/"
+            },
+            "guestbook": {
+                "enabled": false,
+                "urls": []
+            }
+        }
+    },
+    "harvest": {
+        "check_interval_seconds": 300,
+        "interesting_keywords": [
+            "?",
+            "！",
+            "!",
+            "什么",
+            "why",
+            "what",
+            "how",
+            "谁",
+            "哪里",
+            "when",
+            "interesting",
+            "有趣",
+            "奇怪",
+            "神秘",
+            "mystery",
+            "wtf",
+            "lol",
+            "hmm",
+            "等等",
+            "wait"
+        ],
+        "min_response_length": 2,
+        "max_log_entries": 1000
+    }
+}

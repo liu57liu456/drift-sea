@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>无尽海 · Endless Sea — 匿名漂流瓶，把你的心事投向大海</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="无尽海">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<meta name="description" content="无尽海是一个匿名漂流瓶虚拟世界。写下你的秘密、心事、或一声叹息，让它漂向大海。被一个你永远不会认识的人捞起。完全匿名，无需注册。">
+<meta name="keywords" content="漂流瓶,匿名,心事,秘密,倾诉,陌生人,心理,治愈,树洞,匿名聊天,许愿,无尽海">
+<meta property="og:title" content="无尽海 · Endless Sea — 匿名漂流瓶">
+<meta property="og:description" content="写下你的心事，让它漂向大海。被一个你永远不会认识的人捞起。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://endless-sea.onrender.com">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="无尽海 · Endless Sea">
+<meta name="twitter:description" content="匿名漂流瓶虚拟世界。写下你的秘密，投向大海。">
+<style>
+/* ═══════════════════════════════════════════
+   THEME SYSTEM
+   ═══════════════════════════════════════════ */
+:root {
+  --radius: 14px; --radius-sm: 8px;
+  --font: "PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+
+/* Night (default) */
+[data-theme="night"] {
+  --sea-deep: #0a1628; --sea-mid: #0f2040; --sea-light: #1a3a5c;
+  --sand: #2a2520; --foam: #e8f0f8;
+  --coral: #e8735a; --gold: #d4b87a;
+  --text: #d0dce8; --text-dim: #7090b0; --text-bright: #f0f4f8;
+  --surface: rgba(15,30,55,0.85); --surface2: rgba(20,40,70,0.9);
+  --border: rgba(100,150,200,0.2); --border-hover: rgba(140,180,220,0.35);
+  --accent: #5b8cc0; --accent-glow: rgba(91,140,191,0.2);
+  --star-opacity: 0.6; --cloud-opacity: 0; --sand-opacity: 0;
+  --bg-gradient:
+    radial-gradient(ellipse at 20% 0%, rgba(60,120,200,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(30,80,140,0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #0a1628 0%, #0f2040 40%, #1a3a5c 100%);
+  --input-bg: rgba(15,30,55,0.85);
+  --input-text: #f0f4f8;
+  --input-placeholder: rgba(100,150,200,0.3);
+  --card-shadow: 0 1px 0 rgba(255,255,255,0.03);
+  --textarea-bg: transparent;
+}
+
+/* Day */
+[data-theme="day"] {
+  --sea-deep: #dce8f4; --sea-mid: #e2ecf6; --sea-light: #eaf0f6;
+  --sand: #d4c5a0; --foam: #ffffff;
+  --coral: #d47060; --gold: #b89440;
+  --text: #4a5048; --text-dim: #889080; --text-bright: #2a3028;
+  --surface: rgba(255,255,255,0.85); --surface2: rgba(250,248,244,0.9);
+  --border: rgba(150,160,140,0.25); --border-hover: rgba(120,130,110,0.4);
+  --accent: #5b8cbf; --accent-glow: rgba(91,140,191,0.15);
+  --star-opacity: 0; --cloud-opacity: 1; --sand-opacity: 1;
+  --bg-gradient:
+    radial-gradient(ellipse at 30% 10%, rgba(200,220,250,0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(250,220,160,0.2) 0%, transparent 50%),
+    linear-gradient(180deg, #dce8f4 0%, #e8f0f6 40%, #f2efe6 100%);
+  --input-bg: rgba(255,255,255,0.9);
+  --input-text: #2a3028;
+  --input-placeholder: rgba(100,110,90,0.3);
+  --card-shadow: 0 2px 16px rgba(0,0,0,0.05);
+  --textarea-bg: rgba(255,255,255,0.5);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:var(--font);background:var(--sea-deep);color:var(--text);
+  min-height:100vh;overflow-x:hidden;
+  background-image:var(--bg-gradient);
+  transition: background 0.8s ease, color 0.5s ease;
+}
+
+/* ── Theme Switch ── */
+.theme-switch{
+  position:fixed;top:14px;right:14px;z-index:300;
+  width:38px;height:38px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);
+  cursor:pointer;font-size:1.1em;display:flex;
+  align-items:center;justify-content:center;
+  transition:all .3s;color:var(--text);
+  box-shadow:var(--card-shadow);
+}
+.theme-switch:hover{border-color:var(--border-hover);transform:scale(1.08)}
+
+/* ── Ocean layers ── */
+.ocean{position:fixed;bottom:0;left:0;width:100%;height:40%;pointer-events:none;z-index:0}
+.ocean .wave{
+  position:absolute;bottom:0;left:-5%;width:130%;height:100%;
+  border-radius:45% 55% 0 0;
+  animation:waveSwell var(--spd) ease-in-out infinite;
+}
+[data-theme="night"] .ocean .wave:nth-child(1){background:rgba(20,60,110,0.25);--spd:7s;bottom:0}
+[data-theme="night"] .ocean .wave:nth-child(2){background:rgba(30,80,150,0.18);--spd:9s;bottom:15px;animation-delay:-2s}
+[data-theme="night"] .ocean .wave:nth-child(3){background:rgba(40,100,180,0.10);--spd:11s;bottom:30px;animation-delay:-4s}
+[data-theme="day"] .ocean .wave:nth-child(1){background:rgba(140,190,220,0.25);--spd:8s;bottom:0}
+[data-theme="day"] .ocean .wave:nth-child(2){background:rgba(160,200,225,0.18);--spd:10s;bottom:15px;animation-delay:-2s}
+[data-theme="day"] .ocean .wave:nth-child(3){background:rgba(180,210,230,0.10);--spd:12s;bottom:30px;animation-delay:-4s}
+@keyframes waveSwell{0%,100%{transform:translateX(-2%) translateY(0)}50%{transform:translateX(3%) translateY(-6px)}}
+
+/* ── Stars (night) / Sun + Clouds (day) ── */
+.stars{position:fixed;top:0;left:0;width:100%;height:60%;pointer-events:none;z-index:0;opacity:var(--star-opacity);transition:opacity .8s}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle var(--dur) ease-in-out infinite;animation-delay:var(--delay)}
+@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.8}}
+
+/* Moon & Sun with rise/set animations */
+.moon{
+  display:block;position:fixed;top:8%;right:12%;
+  width:60px;height:60px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#faf8f0 0%,#e8e0c8 40%,#d0c8a8 100%);
+  box-shadow:0 0 40px rgba(240,235,200,.2);
+  pointer-events:none;z-index:0;
+  transition:transform 1.2s cubic-bezier(0.34,1.56,0.64,1),opacity 1s ease;
+  animation:floatMoon 8s ease-in-out infinite;
+}
+.moon.rising{transform:translateY(120px) scale(.6);opacity:0}
+.moon.setting{transform:translateY(-120px) scale(.6);opacity:0}
+.moon.visible{transform:translateY(0) scale(1);opacity:1}
+@keyframes floatMoon{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+.sun{
+  display:block;position:fixed;top:6%;right:10%;
+  width:70px;height:70px;border-radius:50%;
+  background:radial-gradient(circle at 40% 40%,#fff8e8 0%,#ffe8b0 40%,#f5c870 100%);
+  box-shadow:0 0 60px rgba(250,200,100,.25);
+  pointer-events:none;z-index:0;
+  transition:transform 1.2s cubic-bezier(0.34,1.56,0.64,1),opacity 1s ease;
+  animation:sunPulse 6s ease-in-out infinite;
+}
+.sun.rising{transform:translateY(120px) scale(.6);opacity:0}
+.sun.setting{transform:translateY(-120px) scale(.6);opacity:0}
+.sun.visible{transform:translateY(0) scale(1);opacity:1}
+@keyframes sunPulse{0%,100%{box-shadow:0 0 60px rgba(250,200,100,.25)}50%{box-shadow:0 0 80px rgba(250,200,100,.35)}}
+
+/* Stars fade with theme */
+.stars{transition:opacity 1.2s ease}
+/* Clouds fade */
+.clouds{transition:opacity 1s ease}
+/* Sand fade */
+.sand-bar{transition:opacity 1s ease}
+
+.clouds{opacity:var(--cloud-opacity);position:fixed;top:0;left:0;width:100%;height:40%;pointer-events:none;z-index:0}
+.cloud{position:absolute;background:rgba(255,255,255,.45);border-radius:50%;filter:blur(28px);animation:cloudDrift var(--spd) linear infinite}
+@keyframes cloudDrift{0%{transform:translateX(-200px)}100%{transform:translateX(calc(100vw + 200px))}}
+
+.sand-bar{opacity:var(--sand-opacity);position:fixed;bottom:0;left:0;width:100%;height:50px;background:linear-gradient(180deg,rgba(220,200,160,.1) 0%,rgba(210,190,150,.2) 100%);border-radius:40% 50% 0 0/15px 15px 0 0;pointer-events:none;z-index:0}
+
+/* ── Main container ── */
+.app{position:relative;z-index:1;max-width:600px;margin:0 auto;padding:10px 16px 40px}
+
+/* ── Top bar ── */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-bottom:8px}
+.topbar .title{font-size:1.3em;font-weight:400;letter-spacing:.08em;color:var(--text-bright)}
+.topbar .nav-btns{display:flex;gap:6px}
+.topbar .nav-btn{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);padding:7px 12px;border-radius:20px;cursor:pointer;font-size:.78em;font-family:var(--font);transition:all .3s}
+.topbar .nav-btn:hover,.topbar .nav-btn.active{border-color:var(--gold);color:var(--gold)}
+.glass-count{background:var(--surface);border:1px solid var(--border);padding:6px 14px;border-radius:20px;font-size:.78em;color:var(--gold)}
+
+/* ── Scene container ── */
+.scene{display:none;animation:sceneIn .5s cubic-bezier(0.16,1,0.3,1)}
+.scene.active{display:block}
+@keyframes sceneIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Beach scene ── */
+.beach-actions{display:flex;gap:12px;margin:20px 0}
+.beach-btn{flex:1;padding:24px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;transition:all .35s;color:var(--text);font-family:var(--font);box-shadow:var(--card-shadow)}
+.beach-btn:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.beach-btn .icon{font-size:2.4em;display:block;margin-bottom:8px}
+.beach-btn .label{font-size:.95em;letter-spacing:.04em}
+.beach-btn .sub{font-size:.72em;color:var(--text-dim);margin-top:4px}
+
+.tide-notice{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin:16px 0;display:flex;align-items:center;gap:12px;cursor:pointer;animation:tidePulse 3s ease-in-out infinite;box-shadow:var(--card-shadow)}
+@keyframes tidePulse{0%,100%{border-color:var(--border)}50%{border-color:rgba(100,180,220,.4)}}
+.tide-notice .icon{font-size:2em}
+.tide-notice .msg{flex:1;font-size:.88em;line-height:1.5}
+
+/* ── Bottles list ── */
+.bottles-list{margin:16px 0}
+.bottle-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:10px;cursor:pointer;transition:all .3s;position:relative;box-shadow:var(--card-shadow)}
+.bottle-card:hover{border-color:var(--border-hover)}
+.bottle-card .emotion-tag{display:inline-block;font-size:.72em;padding:2px 10px;border-radius:10px;margin-bottom:8px;background:rgba(200,160,100,.15);color:var(--gold)}
+.bottle-card .bottle-text{font-size:.92em;line-height:1.7;margin:8px 0}
+.bottle-card .bottle-meta{font-size:.72em;color:var(--text-dim);margin-top:8px}
+.bottle-card .contact-badge{display:inline-block;font-size:.7em;padding:1px 8px;border-radius:8px;margin-left:6px;background:rgba(200,160,100,.12);color:var(--gold)}
+
+/* ── Writing Room ── */
+.write-paper{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--card-shadow)}
+.write-paper textarea{width:100%;min-height:140px;background:var(--textarea-bg);border:none;color:var(--input-text);font-size:1em;font-family:var(--font);line-height:1.8;resize:vertical;outline:none;transition:color .5s}
+.write-paper textarea::placeholder{color:var(--input-placeholder)}
+
+.emotion-stamps{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.emotion-stamp{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-size:.82em;font-family:var(--font);transition:all .3s}
+.emotion-stamp:hover{border-color:var(--gold);color:var(--gold)}
+.emotion-stamp.selected{border-color:var(--gold);background:rgba(200,160,100,.15);color:var(--gold)}
+
+.paper-choices{display:flex;gap:8px;margin:12px 0}
+.paper-choice{width:40px;height:40px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .3s}
+.paper-choice.selected{border-color:var(--gold);transform:scale(1.1)}
+.paper-choice.kraft{background:linear-gradient(135deg,#c8b080,#a89060)}
+.paper-choice.parchment{background:linear-gradient(135deg,#e8dcc8,#d4c8a8)}
+.paper-choice.starry{background:linear-gradient(135deg,#1a1a3a,#0a0a20)}
+.paper-choice.white-paper{background:#f8f8f8}
+
+.bottle-styles{display:flex;gap:12px;margin:16px 0}
+.bottle-style{padding:10px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-size:.82em;font-family:var(--font);transition:all .3s}
+.bottle-style:hover{border-color:var(--gold)}
+.bottle-style.selected{border-color:var(--gold);color:var(--gold);background:rgba(200,160,100,.1)}
+
+/* ── Contact toggle ── */
+.contact-area{margin:12px 0}
+.contact-toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.82em;color:var(--text-dim);letter-spacing:.04em;user-select:none;transition:color .3s}
+.contact-toggle:hover{color:var(--text)}
+.contact-toggle input{display:none}
+.contact-toggle .toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s}
+.contact-toggle .toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-dim);transition:all .3s cubic-bezier(0.16,1,0.3,1)}
+.contact-toggle input:checked~.toggle-track{background:rgba(232,125,138,.3)}
+.contact-toggle input:checked~.toggle-track .toggle-thumb{background:var(--coral);left:20px}
+.contact-toggle input:checked~.toggle-label{color:var(--coral)}
+.contact-input-wrap{max-height:0;overflow:hidden;transition:max-height .45s cubic-bezier(0.16,1,0.3,1),margin .45s;margin-top:0}
+.contact-input-wrap.open{max-height:60px;margin-top:10px}
+.contact-input-wrap input{width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--input-text);font-size:.88em;font-family:var(--font);transition:border-color .35s,color .5s}
+.contact-input-wrap input:focus{outline:none;border-color:var(--coral)}
+.contact-input-wrap input::placeholder{color:var(--input-placeholder)}
+
+/* ── Buttons ── */
+.btn{padding:13px 28px;border-radius:var(--radius-sm);cursor:pointer;font-size:.93em;font-family:var(--font);border:none;transition:all .3s}
+.btn-primary{background:linear-gradient(135deg,#4a80c0,#3a60a0);color:#fff;box-shadow:0 4px 20px var(--accent-glow);width:100%}
+.btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border);width:100%;margin-top:8px}
+.btn-ghost:hover{border-color:var(--text-dim);color:var(--text)}
+.btn-small{padding:8px 18px;font-size:.8em;border-radius:20px;cursor:pointer;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);font-family:var(--font);transition:all .3s}
+.btn-small:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── QR Modal ── */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;animation:fadeIn .25s ease-out}
+[data-theme="day"] .modal-overlay{background:rgba(60,50,30,.4)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px 24px;max-width:360px;width:90%;text-align:center;animation:modalIn .45s cubic-bezier(0.16,1,0.3,1);box-shadow:0 24px 80px rgba(0,0,0,.4)}
+@keyframes modalIn{from{opacity:0;transform:scale(.9) translateY(28px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-card .qr-white{background:#fff;border-radius:12px;padding:18px;display:inline-block;margin-bottom:16px}
+.modal-card img{width:200px;height:auto;display:block;border-radius:4px}
+.modal-card .modal-msg{font-size:.88em;color:var(--text);line-height:1.7;margin-bottom:16px}
+.modal-card .modal-msg .heart{color:var(--gold)}
+.modal-close{background:transparent;border:1px solid var(--border);color:var(--text-dim);padding:9px 28px;border-radius:20px;cursor:pointer;font-size:.85em;font-family:var(--font);transition:all .3s}
+.modal-close:hover{border-color:var(--border-hover);color:var(--text)}
+
+/* ── Seal animation ── */
+.seal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(4,8,20,.9);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease-out}
+.seal-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:36px 28px;text-align:center;max-width:380px;width:90%;animation:sealIn .5s cubic-bezier(0.16,1,0.3,1)}
+@keyframes sealIn{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.seal-card .bottle-visual{font-size:5em;display:block;margin:16px 0}
+.seal-card .confirm-text{font-size:.9em;color:var(--text-dim);line-height:1.7;margin:16px 0}
+.seal-card .btn-row{display:flex;gap:10px}
+
+/* ── Chat Room ── */
+.chat-messages{max-height:50vh;overflow-y:auto;margin:16px 0}
+.chat-msg{padding:12px 16px;margin:8px 0;border-radius:var(--radius-sm);max-width:85%;line-height:1.6;font-size:.9em}
+.chat-msg.mine{background:rgba(60,100,180,.2);margin-left:auto;border-bottom-right-radius:2px}
+.chat-msg.theirs{background:var(--surface);margin-right:auto;border-bottom-left-radius:2px}
+.chat-msg .time{font-size:.68em;color:var(--text-dim);margin-top:4px}
+.chat-input-row{display:flex;gap:8px}
+.chat-input-row input{flex:1;padding:12px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--input-text);font-family:var(--font);transition:color .5s}
+.chat-input-row input::placeholder{color:var(--input-placeholder)}
+.chat-input-row button{padding:12px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font)}
+
+/* ── Lighthouse ── */
+.wish-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;box-shadow:var(--card-shadow);animation:wishGlow var(--glow-dur) ease-in-out infinite}
+@keyframes wishGlow{0%,100%{box-shadow:0 0 0px rgba(200,160,100,0)}50%{box-shadow:0 0 20px rgba(200,160,100,.15)}}
+.wish-card .wish-text{font-size:.9em;line-height:1.6}
+.wish-card .wish-boosts{font-size:.75em;color:var(--gold);margin-top:6px;cursor:pointer}
+.wish-card .wish-boosts:hover{text-decoration:underline}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;margin:16px 0;border-bottom:1px solid var(--border)}
+.tab{padding:10px 20px;cursor:pointer;font-size:.85em;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .3s;font-family:var(--font);background:none}
+.tab.active{border-bottom-color:var(--gold);color:var(--gold)}
+
+/* ── Misc ── */
+.section-title{font-size:.85em;color:var(--text-dim);letter-spacing:.06em;margin:24px 0 12px;text-align:center}
+.empty-state{text-align:center;color:var(--text-dim);padding:32px;font-size:.88em;line-height:1.8}
+.empty-state .icon{font-size:3em;display:block;margin-bottom:12px;opacity:.5}
+.back-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:1.2em;padding:4px 8px;font-family:var(--font)}
+.row{display:flex;gap:10px;align-items:center}
+.tip-btn-wrap{display:flex;justify-content:center;margin:20px 0}
+.tip-btn{background:transparent;border:1px dashed var(--border);color:var(--text-dim);padding:10px 22px;border-radius:20px;font-size:.82em;font-family:var(--font);cursor:pointer;letter-spacing:.05em;transition:all .35s}
+.tip-btn:hover{border-color:var(--gold);color:var(--gold);border-style:solid}
+.footer{text-align:center;font-size:.68em;color:var(--text-dim);opacity:.45;margin-top:32px;line-height:1.8;transition:color .5s}
+.footer a{color:var(--text-dim);text-decoration:none;transition:color .3s}
+.footer a:hover{color:var(--accent)}
+
+/* ── Twilight veil (smooth theme transition) ── */
+.twilight-veil{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:500;opacity:0;
+  transition:opacity .4s ease;
+}
+.twilight-veil.active{
+  opacity:1;
+  animation:twilightGlow 1.6s ease-in-out forwards;
+}
+@keyframes twilightGlow{
+  0%{background:rgba(20,20,40,0)}
+  30%{background:rgba(180,140,100,.25)}
+  60%{background:rgba(120,160,200,.2)}
+  100%{background:rgba(20,20,40,0)}
+}
+
+/* ── Calm Cove (静心湾) ── */
+.mood-grid{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+.mood-btn{
+  flex:1;min-width:90px;padding:14px 10px;border-radius:var(--radius);
+  border:1px solid var(--border);background:var(--surface);
+  text-align:center;cursor:pointer;transition:all .3s;
+  font-family:var(--font);color:var(--text);
+  box-shadow:var(--card-shadow);
+}
+.mood-btn:hover{border-color:var(--gold);transform:translateY(-2px)}
+.mood-btn.selected{border-color:var(--gold);box-shadow:0 0 16px var(--accent-glow)}
+.mood-btn .mood-icon{font-size:1.8em;display:block;margin-bottom:4px}
+.mood-btn .mood-label{font-size:.8em}
+
+.mood-history{display:flex;gap:6px;margin:16px 0;overflow-x:auto;padding:4px 0}
+.mood-dot{
+  width:14px;height:14px;border-radius:50%;flex-shrink:0;
+  cursor:pointer;transition:transform .3s;position:relative;
+}
+.mood-dot:hover{transform:scale(1.4)}
+
+/* Breathing wave */
+.breath-section{text-align:center;margin:24px 0}
+.breath-circle{
+  width:140px;height:140px;border-radius:50%;
+  margin:0 auto 20px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface);border:2px solid var(--border);
+  transition:all .5s;
+}
+.breath-circle.inhaling{
+  transform:scale(1.5);border-color:var(--accent);
+  box-shadow:0 0 40px var(--accent-glow);
+}
+.breath-circle .breath-text{font-size:1em;color:var(--text);letter-spacing:.04em}
+.breath-guide{font-size:.85em;color:var(--text-dim);margin-bottom:12px}
+
+/* Tree hole */
+.treehole-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px 20px;margin-bottom:10px;
+  box-shadow:var(--card-shadow);
+}
+.treehole-card .th-text{font-size:.9em;line-height:1.7;margin:8px 0}
+.treehole-card .th-echoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.echo-chip{
+  padding:4px 10px;border-radius:12px;font-size:.75em;
+  background:rgba(200,160,100,.12);color:var(--gold);
+  cursor:pointer;transition:all .3s;border:1px solid transparent;
+}
+.echo-chip:hover{border-color:var(--gold)}
+
+/* Crisis overlay */
+.crisis-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(4,8,20,.92);z-index:400;
+  display:flex;align-items:center;justify-content:center;
+  animation:fadeIn .5s ease-out;
+}
+.crisis-card{
+  background:var(--surface2);border:1px solid var(--coral);
+  border-radius:var(--radius);padding:32px 28px;
+  max-width:440px;width:90%;text-align:center;
+  animation:modalIn .5s cubic-bezier(0.16,1,0.3,1);
+}
+.crisis-card .crisis-icon{font-size:4em;display:block;margin-bottom:12px}
+.crisis-card h3{color:var(--text-bright);margin-bottom:8px;font-weight:400}
+.crisis-card .crisis-msg{font-size:.88em;color:var(--text-dim);line-height:1.8;margin-bottom:20px}
+.crisis-card .helpline-item{
+  padding:10px 16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin:6px 0;font-size:.9em;
+}
+.crisis-card .helpline-item a{color:var(--coral);text-decoration:none;font-weight:500}
+.crisis-close{
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-dim);padding:10px 28px;border-radius:20px;
+  cursor:pointer;margin-top:16px;font-family:var(--font);transition:all .3s;
+}
+.crisis-close:hover{border-color:var(--text);color:var(--text)}
+
+/* Calm Cove nav */
+.nav-calmcove{
+  background:linear-gradient(135deg,rgba(120,180,200,.15),rgba(160,200,220,.1));
+  border:1px solid rgba(120,180,200,.25) !important;
+}
+
+@media(max-width:480px){
+  .app{padding:8px 10px 40px}
+  .beach-actions{flex-direction:column}
+  .emotion-stamps{font-size:.75em}
+  .modal-card img{width:160px}
+  .theme-switch{top:8px;right:8px;width:34px;height:34px}
+}
+</style>
+</head>
+<body>
+
+<!-- PWA Install Banner -->
+<div id="install-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;
+  background:var(--surface2);border-top:1px solid var(--border);
+  padding:10px 16px 14px;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(10px);color:var(--text)">
+  <span style="font-size:14px">🌊 安装无尽海应用</span>
+  <button id="install-btn" style="
+    background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);
+    padding:8px 20px;font-size:14px;cursor:pointer;font-family:var(--font);
+    box-shadow:0 2px 8px var(--accent-glow)">安装</button>
+  <button onclick="document.getElementById('install-bar').style.display='none'"
+    style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:4px 8px">✕</button>
+</div>
+
+<!-- Theme toggle -->
+<button class="theme-switch" id="themeSwitch" onclick="toggleTheme()" title="切换日间/夜间">🌓</button>
+
+<!-- Night elements -->
+<div class="stars" id="stars"></div>
+<div class="moon"></div>
+
+<!-- Day elements -->
+<div class="sun"></div>
+<div class="clouds" id="clouds"></div>
+<div class="sand-bar"></div>
+
+<!-- Ocean -->
+<!-- Twilight veil for smooth theme transitions -->
+<div class="twilight-veil" id="twilightVeil"></div>
+
+<div class="ocean"><div class="wave"></div><div class="wave"></div><div class="wave"></div></div>
+
+<div class="app" id="app">
+  <div class="topbar">
+    <button class="back-btn" id="backBtn" onclick="goHome()" style="display:none">←</button>
+    <span class="title" id="sceneTitle">无尽海</span>
+    <div class="row">
+      <span class="glass-count" id="glassDisplay">🫧 0</span>
+      <button class="nav-btn" onclick="showScene('beach')" id="navBeach">🏠</button>
+      <button class="nav-btn" onclick="showScene('lighthouse')" id="navLight">🗼</button>
+      <button class="nav-btn" onclick="showScene('stories')" id="navStories">📜</button>
+      <button class="nav-btn" onclick="showScene('hut')" id="navHut">🏡</button>
+      <button class="nav-btn nav-calmcove" onclick="showScene('calmcove')" id="navCalm">🪸</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ BEACH ═══════════════ -->
+  <div class="scene active" id="scene-beach">
+    <div class="tide-notice" id="tideNotice" onclick="pickupBottles()">
+      <span class="icon">🌊</span>
+      <div class="msg"><strong>涨潮了</strong><br>海面上漂来了几个瓶子，点击捞起...</div>
+    </div>
+    <div class="beach-actions">
+      <button class="beach-btn" onclick="showScene('write')">
+        <span class="icon">✍️</span><span class="label">写一个漂流瓶</span>
+        <span class="sub">写下心事，让它漂向大海</span>
+      </button>
+      <button class="beach-btn" onclick="pickupBottles()">
+        <span class="icon">🫧</span><span class="label">拾取漂流瓶</span>
+        <span class="sub" id="pickupCount">随时可以捞起海面上的瓶子</span>
+      </button>
+    </div>
+    <div class="tip-btn-wrap">
+      <button class="tip-btn" onclick="showQRModal()">🧊 请这个漂流瓶喝一瓶水</button>
+    </div>
+    <div class="section-title">— 刚刚漂来的瓶子 —</div>
+    <div class="bottles-list" id="recentBottles">
+      <div class="empty-state"><span class="icon">🌊</span>海面很平静……<br>稍等片刻，瓶子正在漂来</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ WRITING ═══════════════ -->
+  <div class="scene" id="scene-write">
+    <div class="write-paper" id="writePaper">
+      <textarea id="writeText" placeholder="写下你想说的话……&#10;&#10;可以是一句诗、一个秘密、一个问题、&#10;或者只是此刻的一声叹息。" maxlength="2000"></textarea>
+    </div>
+
+    <!-- Contact toggle -->
+    <div class="contact-area">
+      <label class="contact-toggle">
+        <input type="checkbox" id="contactCheck" onchange="toggleContact()">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span class="toggle-label">📮 留下联系方式，让有缘人找到你</span>
+      </label>
+      <div class="contact-input-wrap" id="contactInputWrap">
+        <input type="text" id="contactInput" placeholder="微信 / QQ / 邮箱 / 手机号…（选填）" maxlength="120">
+      </div>
+    </div>
+
+    <div class="section-title">— 选择情绪印章 —</div>
+    <div class="emotion-stamps" id="emotionStamps">
+      <button class="emotion-stamp" data-emotion="喜悦">😊 喜悦</button>
+      <button class="emotion-stamp" data-emotion="思念">💭 思念</button>
+      <button class="emotion-stamp selected" data-emotion="倾诉">💬 倾诉</button>
+      <button class="emotion-stamp" data-emotion="困惑">🤔 困惑</button>
+      <button class="emotion-stamp" data-emotion="许愿">🌟 许愿</button>
+      <button class="emotion-stamp" data-emotion="秘密">🤫 秘密</button>
+      <button class="emotion-stamp" data-emotion="祝福">💝 祝福</button>
+      <button class="emotion-stamp" data-emotion="告别">👋 告别</button>
+    </div>
+
+    <div class="section-title">— 信纸选择 —</div>
+    <div class="paper-choices" id="paperChoices">
+      <div class="paper-choice white-paper" data-paper="纯白信纸" title="纯白"></div>
+      <div class="paper-choice kraft selected" data-paper="牛皮纸" title="牛皮纸"></div>
+      <div class="paper-choice parchment" data-paper="羊皮纸" title="羊皮纸"></div>
+      <div class="paper-choice starry" data-paper="星空纸" title="星空"></div>
+    </div>
+
+    <div class="section-title">— 瓶身样式 —</div>
+    <div class="bottle-styles" id="bottleStyles">
+      <button class="bottle-style selected" data-bottle="透明玻璃瓶">🫙 玻璃瓶</button>
+      <button class="bottle-style" data-bottle="陶罐">🏺 陶罐</button>
+      <button class="bottle-style" data-bottle="许愿星瓶">⭐ 星瓶</button>
+      <button class="bottle-style" data-bottle="木塞瓶">🍾 木塞瓶</button>
+    </div>
+
+    <button class="btn btn-primary" onclick="sealBottle()">🫧 封装并投入大海</button>
+    <button class="btn btn-ghost" onclick="goHome()">← 返回海滩</button>
+  </div>
+
+  <!-- ═══════════════ CHAT ═══════════════ -->
+  <div class="scene" id="scene-chat">
+    <div class="section-title" id="chatRoomTitle">海潮对谈室</div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="输入消息…" maxlength="500">
+      <button onclick="sendChatMessage()">发送</button>
+    </div>
+    <button class="btn btn-ghost" onclick="closeChatRoom()">关闭对谈室 (72小时后自动关闭)</button>
+  </div>
+
+  <!-- ═══════════════ HUT ═══════════════ -->
+  <div class="scene" id="scene-hut">
+    <div class="section-title">🏡 我的海礁屋</div>
+    <div style="text-align:center;font-size:4em;margin:20px 0">🏠</div>
+    <div class="empty-state"><p>欢迎回到你的海礁屋</p><p style="font-size:.8em">这里是你在无尽海的家</p></div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchHutTab('sent',event)">发出的瓶子</button>
+      <button class="tab" onclick="switchHutTab('received',event)">收到的回音</button>
+      <button class="tab" onclick="switchHutTab('chats',event)">海潮对谈</button>
+    </div>
+    <div id="hutContent"></div>
+  </div>
+
+  <!-- ═══════════════ LIGHTHOUSE ═══════════════ -->
+  <div class="scene" id="scene-lighthouse">
+    <div class="section-title">🗼 许愿灯塔</div>
+    <div style="text-align:center;font-size:3em;margin:12px 0">🗼</div>
+    <p style="text-align:center;font-size:.82em;color:var(--text-dim);margin-bottom:16px">向全世界的陌生人许下一个愿望<br>或为他人的愿望添加灯油</p>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="wishInput" placeholder="许下一个愿望…" maxlength="200" style="flex:1;padding:12px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--input-text);font-family:var(--font)">
+      <button class="btn-small" onclick="makeWish()" style="white-space:nowrap">🕯 许愿</button>
+    </div>
+    <div id="wishesList" style="margin-top:16px"></div>
+  </div>
+
+  <!-- ═══════════════ STORIES ═══════════════ -->
+  <div class="scene" id="scene-stories">
+    <div class="section-title">📜 共创故事瓶</div>
+    <div style="text-align:center;font-size:.82em;color:var(--text-dim);margin-bottom:16px">一个人写下开头，陌生人续写……<br>当故事收集足够的章节，它将被永久封存</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="text" id="storyTitleInput" placeholder="故事标题…" maxlength="50" style="flex:1;padding:12px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--input-text);font-family:var(--font)">
+    </div>
+    <textarea id="storyTextInput" placeholder="写下故事的开头…" maxlength="1000" style="width:100%;padding:14px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--input-text);font-family:var(--font);min-height:100px;resize:vertical;margin-bottom:8px"></textarea>
+    <button class="btn btn-primary" onclick="startStory()">投入共创故事瓶</button>
+    <div id="storiesList" style="margin-top:16px"></div>
+  </div>
+
+  <!-- ═══════════════ CALM COVE ═══════════════ -->
+  <div class="scene" id="scene-calmcove">
+    <div class="section-title">🪸 静心湾 · 心灵自愈港</div>
+    <p style="text-align:center;font-size:.78em;color:var(--text-dim);margin-bottom:20px;line-height:1.7">
+      一个陪伴你、引导你探索内心的地方<br>不诊断，不评判，只陪伴
+    </p>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchCalmTab('mood',event)">🌤 情绪气象台</button>
+      <button class="tab" onclick="switchCalmTab('breath',event)">🫧 海玻璃之湖</button>
+      <button class="tab" onclick="switchCalmTab('treehole',event)">🕳 漂流树洞</button>
+    </div>
+
+    <!-- Mood Weather Station -->
+    <div id="calm-mood">
+      <div class="section-title">今天的情绪天气是？</div>
+      <div class="mood-grid" id="moodGrid">
+        <button class="mood-btn" data-mood="晴"><span class="mood-icon">☀️</span><span class="mood-label">晴 · 平静开心</span></button>
+        <button class="mood-btn" data-mood="薄雾"><span class="mood-icon">🌫️</span><span class="mood-label">薄雾 · 迷茫困惑</span></button>
+        <button class="mood-btn" data-mood="细雨"><span class="mood-icon">🌧️</span><span class="mood-label">细雨 · 悲伤失落</span></button>
+        <button class="mood-btn" data-mood="雷暴"><span class="mood-icon">⛈️</span><span class="mood-label">雷暴 · 愤怒焦虑</span></button>
+        <button class="mood-btn" data-mood="深海暗流"><span class="mood-icon">🌊</span><span class="mood-label">深海暗流 · 恐惧压抑</span></button>
+      </div>
+      <textarea id="moodNote" placeholder="（仅自己可见）把心事锁进日记本…" maxlength="500"
+        style="width:100%;padding:14px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--input-text);font-family:var(--font);min-height:70px;resize:vertical;margin:8px 0"></textarea>
+      <button class="btn btn-primary" onclick="recordMood()">记录此刻的心情</button>
+      <div id="moodInsight" style="text-align:center;margin-top:12px;font-size:.85em;color:var(--gold);line-height:1.7"></div>
+      <div class="section-title">心情海图</div>
+      <div class="mood-history" id="moodHistory"></div>
+    </div>
+
+    <!-- Breathing Wave -->
+    <div id="calm-breath" style="display:none">
+      <div class="breath-section">
+        <p class="breath-guide" id="breathGuide">准备好了吗？跟着海浪一起呼吸</p>
+        <div class="breath-circle" id="breathCircle" onclick="toggleBreathing()">
+          <span class="breath-text" id="breathText">开始</span>
+        </div>
+        <p style="font-size:.8em;color:var(--text-dim)">点击圆圈开始呼吸练习</p>
+        <div style="margin-top:12px;font-size:.78em;color:var(--text-dim)">
+          <span>吸气 4 秒 · 屏息 4 秒 · 呼气 6 秒</span>
+        </div>
+        <button class="btn btn-ghost" onclick="toggleBreathing()" style="margin-top:12px" id="breathBtn">开始呼吸练习</button>
+      </div>
+    </div>
+
+    <!-- Tree Hole -->
+    <div id="calm-treehole" style="display:none">
+      <div class="section-title">把你的烦恼投入树洞</div>
+      <p style="text-align:center;font-size:.78em;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+        这里只有共情回响，没有评判和说教<br>你的痛苦会被温柔地接住
+      </p>
+      <textarea id="treeholeText" placeholder="写下你内心的痛苦、烦恼……不需要修饰。" maxlength="1500"
+        style="width:100%;padding:14px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--input-text);font-family:var(--font);min-height:80px;resize:vertical;margin-bottom:8px"></textarea>
+      <button class="btn btn-primary" onclick="throwTreehole()">投入树洞瓶 🕳</button>
+      <button class="btn btn-ghost" onclick="pickupTreehole()" style="margin-top:8px">捞起一个树洞瓶 🤲</button>
+      <div id="treeholeList" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    无尽海 · 漂流瓶在互联网深海中自主传播<br>
+    每次被打开，都是一次新的相遇 · <a href="#" onclick="document.getElementById('supportInfo').style.display='block';return false">支持服务器</a>
+    <div id="supportInfo" style="display:none;margin-top:8px;font-size:0.9em;opacity:0.8">
+      如果你愿意帮助无尽海继续漂流<br>
+      <span style="user-select:all;word-break:break-all">XMR: 4AVZnp5bzqeVR2Gm1upAD1Bcxs2B62RexU2qxhjae7CuB61MyLL3ALyS6aUbWs7Bg52FHEpH67ERo5x4o1jnad9J99xywbi</span><br>
+      <span style="font-size:0.85em;opacity:0.6">(Monero — private, no tracking)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Seal Confirmation -->
+<div id="sealOverlay" class="seal-overlay" style="display:none">
+  <div class="seal-card">
+    <span class="bottle-visual" id="sealBottleVisual">🫙</span>
+    <p class="confirm-text" id="sealConfirmText">你真的要让这份心情漂向大海吗？</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="throwBottle()" style="flex:1">投入大海</button>
+      <button class="btn btn-ghost" onclick="closeSeal()" style="flex:1">再改改</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);padding:14px 24px;border-radius:24px;z-index:300;display:none;font-size:.88em;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.4)"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// THEME ENGINE
+// ═══════════════════════════════════════════
+const html = document.documentElement;
+let currentTheme = 'night';
+
+function detectTheme() {
+  const saved = localStorage.getItem('endless-sea-theme');
+  if (saved === 'day' || saved === 'night') return saved;
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'day';
+  const hour = new Date().getHours();
+  return (hour >= 6 && hour < 18) ? 'day' : 'night';
+}
+
+function applyTheme(theme) {
+  const prev = currentTheme;
+  if (prev && prev !== theme) {
+    // Trigger twilight veil for smooth transition
+    const veil = document.getElementById('twilightVeil');
+    veil.classList.add('active');
+    setTimeout(() => veil.classList.remove('active'), 1600);
+  }
+  currentTheme = theme;
+  html.setAttribute('data-theme', theme);
+  localStorage.setItem('endless-sea-theme', theme);
+  document.getElementById('themeSwitch').textContent = theme === 'night' ? '☀️' : '🌙';
+
+  const moon = document.querySelector('.moon');
+  const sun = document.querySelector('.sun');
+
+  if (theme === 'night' && prev === 'day') {
+    sun.classList.remove('visible'); sun.classList.add('setting');
+    setTimeout(() => { sun.classList.remove('setting'); sun.classList.add('rising'); }, 1200);
+    moon.classList.remove('setting'); moon.classList.add('rising');
+    setTimeout(() => { moon.classList.remove('rising'); moon.classList.add('visible'); }, 50);
+  } else if (theme === 'day' && prev === 'night') {
+    moon.classList.remove('visible'); moon.classList.add('setting');
+    setTimeout(() => { moon.classList.remove('setting'); moon.classList.add('rising'); }, 1200);
+    sun.classList.remove('setting'); sun.classList.add('rising');
+    setTimeout(() => { sun.classList.remove('rising'); sun.classList.add('visible'); }, 50);
+  } else if (theme === 'night') {
+    moon.classList.add('visible'); sun.classList.add('rising');
+  } else {
+    sun.classList.add('visible'); moon.classList.add('rising');
+  }
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme === 'night' ? 'day' : 'night');
+}
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('endless-sea-theme')) applyTheme(e.matches ? 'night' : 'day');
+});
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const API = '';
+let token = localStorage.getItem('sea_token') || '';
+let user = null;
+let currentScene = 'beach';
+let selectedEmotion = '倾诉';
+let selectedPaper = '牛皮纸';
+let selectedBottle = '透明玻璃瓶';
+let currentRoomId = null;
+let chatPollTimer = null;
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  applyTheme(detectTheme());
+  generateStars();
+  generateClouds();
+  await getIdentity();
+  await loadRecentBottles();
+  updateGlassDisplay();
+  updateNav();
+  setInterval(() => { document.getElementById('tideNotice').style.display = 'block'; }, 5 * 60 * 1000);
+}
+
+async function getIdentity() {
+  try {
+    const r = await fetch(`${API}/api/identity`, {
+      headers: token ? {'Authorization': `Bearer ${token}`} : {}
+    });
+    const data = await r.json();
+    token = data.token;
+    user = data.user;
+    localStorage.setItem('sea_token', token);
+  } catch(e) {}
+}
+
+function authHeaders() {
+  return {'Content-Type': 'application/json; charset=utf-8', 'Authorization': `Bearer ${token}`};
+}
+
+// ═══════════════════════════════════════════
+// STARS & CLOUDS
+// ═══════════════════════════════════════════
+function generateStars() {
+  const c = document.getElementById('stars');
+  let h = '';
+  for (let i = 0; i < 100; i++) {
+    h += `<div class="star" style="width:${Math.random()*2+1}px;height:${Math.random()*2+1}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${Math.random()*4+2}s;--delay:${Math.random()*5}s"></div>`;
+  }
+  // shooting stars
+  for (let i = 0; i < 3; i++) {
+    h += `<div class="star" style="width:2px;height:2px;left:${Math.random()*80}%;top:${Math.random()*40}%;animation:shoot 1.5s linear infinite;animation-delay:${Math.random()*10+3}s;opacity:0"></div>`;
+  }
+  c.innerHTML = h;
+}
+
+function generateClouds() {
+  const c = document.getElementById('clouds');
+  let h = '';
+  for (let i = 0; i < 4; i++) {
+    h += `<div class="cloud" style="top:${8+i*12}%;left:${i*25+Math.random()*10}%;width:${140+Math.random()*80}px;height:${50+Math.random()*30}px;--spd:${40+Math.random()*30}s"></div>`;
+  }
+  c.innerHTML = h;
+}
+
+// ═══════════════════════════════════════════
+// CONTACT TOGGLE
+// ═══════════════════════════════════════════
+function toggleContact() {
+  const checked = document.getElementById('contactCheck').checked;
+  const wrap = document.getElementById('contactInputWrap');
+  if (checked) { wrap.classList.add('open'); setTimeout(() => document.getElementById('contactInput').focus(), 400); }
+  else { wrap.classList.remove('open'); document.getElementById('contactInput').value = ''; }
+}
+
+// ═══════════════════════════════════════════
+// QR MODAL
+// ═══════════════════════════════════════════
+function showQRModal() {
+  const existing = document.querySelector('.modal-overlay');
+  if (existing) { existing.remove(); return; }
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-card">
+      <div class="qr-white"><img src="/qr" alt="QR"></div>
+      <p class="modal-msg">如果这些匿名的心事<br>曾在某个瞬间<span class="heart">触动了你</span><br><br>请这个漂流瓶喝一瓶水吧<br>让它漂得更远一些</p>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">关闭 · 继续漂流</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function showScene(name, data) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  const scene = document.getElementById(`scene-${name}`);
+  if (scene) scene.classList.add('active');
+  currentScene = name;
+  updateNav();
+  const titles = {beach:'无尽海',write:'写漂流瓶',lighthouse:'许愿灯塔',stories:'共创故事',hut:'海礁屋',chat:'海潮对谈',calmcove:'静心湾'};
+  if (name === 'calmcove') { switchCalmTab('mood'); loadMoods(); }
+  document.getElementById('sceneTitle').textContent = titles[name] || '无尽海';
+  document.getElementById('backBtn').style.display = name === 'beach' ? 'none' : 'inline-block';
+  if (name === 'lighthouse') loadWishes();
+  if (name === 'stories') loadStories();
+  if (name === 'hut') loadHutData('sent');
+  if (name === 'beach') loadRecentBottles();
+}
+
+function goHome() { if (currentRoomId) closeChatRoom(); showScene('beach'); }
+
+function updateNav() {
+  ['beach','lighthouse','stories','hut','calmcove'].forEach(s => {
+    const btn = document.getElementById(`nav${s.charAt(0).toUpperCase()+s.slice(1)}`);
+    if (btn) btn.classList.toggle('active', s === currentScene);
+  });
+}
+
+function updateGlassDisplay() {
+  if (user) document.getElementById('glassDisplay').textContent = `🫧 ${user.sea_glass || 0}`;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+
+// ═══════════════════════════════════════════
+// BOTTLE PICKUP
+// ═══════════════════════════════════════════
+async function pickupBottles() {
+  try {
+    const r = await fetch(`${API}/api/bottles/pickup?count=3`, {headers: authHeaders()});
+    const data = await r.json();
+    if (data.bottles && data.bottles.length > 0) {
+      renderPickedBottles(data.bottles);
+      toast(`捞起了 ${data.bottles.length} 个漂流瓶！`);
+    } else { toast('海面很平静，暂时没有漂来的瓶子...'); }
+  } catch(e) { toast('海洋信号不好，稍后再试...'); }
+}
+
+function renderPickedBottles(bottles) {
+  const container = document.getElementById('recentBottles');
+  if (bottles.length === 0) {
+    container.innerHTML = '<div class="empty-state"><span class="icon">🌊</span>海面很平静……<br>稍等片刻，瓶子正在漂来</div>';
+    return;
+  }
+  container.innerHTML = bottles.map(b => {
+    const contactBadge = b.contact ? `<span class="contact-badge">📮 ${escapeHtml(b.contact)}</span>` : '';
+    return `
+      <div class="bottle-card">
+        <span class="emotion-tag">${b.emotion || '倾诉'}</span>
+        <div class="bottle-text">${escapeHtml(b.text.substring(0, 150))}${b.text.length > 150 ? '…' : ''}${contactBadge}</div>
+        <div class="bottle-meta">${b.bottle_style || '玻璃瓶'} · ${b.thrown_time || ''} · 来自 ${b.from_name || '匿名'}${b.replies && b.replies.length > 0 ? ' · 💌 已有回信' : ''}</div>
+      </div>`;
+  }).join('');
+}
+
+async function loadRecentBottles() {
+  try {
+    const r = await fetch(`${API}/api/stats`, {headers: authHeaders()});
+    const stats = await r.json();
+    document.getElementById('pickupCount').textContent = `大海中正在漂流 ${stats.drifting_bottles || 0} 个瓶子，随时可捞`;
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// WRITING & SEALING
+// ═══════════════════════════════════════════
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('emotion-stamp')) {
+    document.querySelectorAll('.emotion-stamp').forEach(s => s.classList.remove('selected'));
+    e.target.classList.add('selected'); selectedEmotion = e.target.dataset.emotion;
+  }
+  if (e.target.classList.contains('paper-choice')) {
+    document.querySelectorAll('.paper-choice').forEach(s => s.classList.remove('selected'));
+    e.target.classList.add('selected'); selectedPaper = e.target.dataset.paper;
+  }
+  if (e.target.classList.contains('bottle-style')) {
+    document.querySelectorAll('.bottle-style').forEach(s => s.classList.remove('selected'));
+    e.target.classList.add('selected');
+    selectedBottle = e.target.dataset.bottle;
+    document.getElementById('sealBottleVisual').textContent = {'透明玻璃瓶':'🫙','陶罐':'🏺','许愿星瓶':'⭐','木塞瓶':'🍾'}[selectedBottle] || '🫙';
+  }
+});
+
+function sealBottle() {
+  const text = document.getElementById('writeText').value.trim();
+  if (text.length < 2) { toast('瓶子太轻了，多写几个字吧...'); return; }
+  document.getElementById('sealBottleVisual').textContent = {'透明玻璃瓶':'🫙','陶罐':'🏺','许愿星瓶':'⭐','木塞瓶':'🍾'}[selectedBottle] || '🫙';
+  document.getElementById('sealConfirmText').innerHTML = `你真的要让这份<span style="color:var(--gold)">${selectedEmotion}</span>的心情<br>漂向大海吗？<br><br>它可能漂到世界任何一个角落。<br>被一个你永远不会认识的人捞起。`;
+  document.getElementById('sealOverlay').style.display = 'flex';
+}
+
+function closeSeal() { document.getElementById('sealOverlay').style.display = 'none'; }
+
+async function throwBottle() {
+  const text = document.getElementById('writeText').value.trim();
+  document.getElementById('sealOverlay').style.display = 'none';
+
+  const contactCheck = document.getElementById('contactCheck');
+  const contactInput = document.getElementById('contactInput');
+  const contact = contactCheck.checked ? contactInput.value.trim() : '';
+
+  const body = {text, emotion: selectedEmotion, paper: selectedPaper, bottle_style: selectedBottle};
+  if (contact) body.contact = contact;
+
+  try {
+    const r = await fetch(`${API}/api/bottles/throw`, {method: 'POST', headers: authHeaders(), body: JSON.stringify(body)});
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    document.getElementById('writeText').value = '';
+    document.getElementById('contactCheck').checked = false;
+    document.getElementById('contactInput').value = '';
+    document.getElementById('contactInputWrap').classList.remove('open');
+    document.querySelectorAll('.emotion-stamp').forEach(s => s.classList.remove('selected'));
+    document.querySelector('.emotion-stamp[data-emotion="倾诉"]').classList.add('selected');
+    selectedEmotion = '倾诉';
+    updateGlassDisplay();
+    toast('🫧 瓶子已投入大海...海浪会将它带去远方');
+    setTimeout(() => showScene('beach'), 800);
+  } catch(e) { toast('海洋信号不好...'); }
+}
+
+// ═══════════════════════════════════════════
+// CHAT ROOM
+// ═══════════════════════════════════════════
+async function openChatRoom(roomId) {
+  currentRoomId = roomId; showScene('chat');
+  await refreshChat();
+  chatPollTimer = setInterval(refreshChat, 5000);
+}
+
+async function refreshChat() {
+  if (!currentRoomId) return;
+  try {
+    const r = await fetch(`${API}/api/chatrooms/${currentRoomId}`, {headers: authHeaders()});
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    if (data.room) {
+      renderChatMessages(data.room.messages);
+      document.getElementById('chatRoomTitle').textContent = data.room.closed ? '海潮对谈室 [已关闭]' : '海潮对谈室';
+      if (data.room.closed) { clearInterval(chatPollTimer); toast('这个对谈室已经随落潮关闭了'); }
+    }
+  } catch(e) {}
+}
+
+function renderChatMessages(messages) {
+  const container = document.getElementById('chatMessages');
+  if (!messages || messages.length === 0) { container.innerHTML = '<div class="empty-state">对谈室已建立<br>说出你的第一句话吧...</div>'; return; }
+  container.innerHTML = messages.map(m => {
+    const isMine = m.from_token === token;
+    return `<div class="chat-msg ${isMine ? 'mine' : 'theirs'}">${escapeHtml(m.text)}<div class="time">${m.time}</div></div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput'); const text = input.value.trim();
+  if (!text || !currentRoomId) return;
+  try {
+    const r = await fetch(`${API}/api/chatrooms/${currentRoomId}/send`, {method: 'POST', headers: authHeaders(), body: JSON.stringify({text})});
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    input.value = ''; await refreshChat();
+  } catch(e) { toast('发送失败...'); }
+}
+
+async function closeChatRoom() {
+  if (currentRoomId) {
+    try { await fetch(`${API}/api/chatrooms/${currentRoomId}/close`, {method: 'POST', headers: authHeaders()}); } catch(e) {}
+  }
+  clearInterval(chatPollTimer); currentRoomId = null;
+  toast('对谈室已关闭。你们的对话已保存在漂流物语中。');
+}
+
+// ═══════════════════════════════════════════
+// LIGHTHOUSE
+// ═══════════════════════════════════════════
+async function loadWishes() {
+  try {
+    const r = await fetch(`${API}/api/lighthouse?sort=boosts`, {headers: authHeaders()});
+    renderWishes((await r.json()).wishes || []);
+  } catch(e) {}
+}
+
+function renderWishes(wishes) {
+  const c = document.getElementById('wishesList');
+  if (wishes.length === 0) { c.innerHTML = '<div class="empty-state"><span class="icon">🕯</span>灯塔还空着<br>许下第一个愿望吧</div>'; return; }
+  c.innerHTML = wishes.map(w => `<div class="wish-card" style="--glow-dur:${2+w.boosts*0.3}s"><div class="wish-text">🕯 ${escapeHtml(w.text)}</div><div class="wish-boosts" onclick="boostWish('${w.id}')">🪔 ${w.boosts} 份灯油 · 点击添加</div></div>`).join('');
+}
+
+async function makeWish() {
+  const text = document.getElementById('wishInput').value.trim(); if (!text) return;
+  try {
+    const r = await fetch(`${API}/api/lighthouse/wish`, {method: 'POST', headers: authHeaders(), body: JSON.stringify({text})});
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    document.getElementById('wishInput').value = ''; toast('🕯 愿望已点亮灯塔'); loadWishes();
+  } catch(e) { toast('许愿失败...'); }
+}
+
+async function boostWish(wishId) {
+  try {
+    await fetch(`${API}/api/lighthouse/boost`, {method: 'POST', headers: authHeaders(), body: JSON.stringify({wish_id: wishId})});
+    toast('你为这个愿望添加了灯油 🪔'); loadWishes();
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// STORIES
+// ═══════════════════════════════════════════
+async function loadStories() {
+  try {
+    const r = await fetch(`${API}/api/stories`, {headers: authHeaders()});
+    renderStories((await r.json()).stories || []);
+  } catch(e) {}
+}
+
+function renderStories(stories) {
+  const c = document.getElementById('storiesList');
+  if (stories.length === 0) { c.innerHTML = '<div class="empty-state"><span class="icon">📜</span>还没有共创故事<br>写下第一个故事的开头吧</div>'; return; }
+  c.innerHTML = stories.map(s => `<div class="bottle-card"><strong>📜 ${escapeHtml(s.title)}</strong><span style="font-size:.72em;color:var(--text-dim)"> · ${s.chapters.length} 章 · ${s.status==='completed'?'已封存':'续写中'}</span><div class="bottle-text">${escapeHtml((s.chapters[0]?.text||'').substring(0,120))}…</div></div>`).join('');
+}
+
+async function startStory() {
+  const title = document.getElementById('storyTitleInput').value.trim() || '未命名故事';
+  const text = document.getElementById('storyTextInput').value.trim(); if (!text) { toast('请写下故事的开头'); return; }
+  try {
+    const r = await fetch(`${API}/api/stories/start`, {method: 'POST', headers: authHeaders(), body: JSON.stringify({title, text})});
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    document.getElementById('storyTitleInput').value = ''; document.getElementById('storyTextInput').value = '';
+    toast('📜 共创故事瓶已投入大海！'); loadStories();
+  } catch(e) { toast('发送失败...'); }
+}
+
+// ═══════════════════════════════════════════
+// HUT
+// ═══════════════════════════════════════════
+async function loadHutData(tab) {
+  const container = document.getElementById('hutContent');
+  container.innerHTML = '<div class="empty-state">正在整理漂流物语...</div>';
+  if (tab === 'sent' || tab === 'received') {
+    try {
+      const r = await fetch(`${API}/api/bottles/log`, {headers: authHeaders()});
+      const data = await r.json();
+      const items = tab === 'sent' ? (data.sent || []) : (data.received || []);
+      if (items.length === 0) {
+        container.innerHTML = `<div class="empty-state"><span class="icon">${tab==='sent'?'🫧':'💌'}</span>还没有${tab==='sent'?'发出':'收到'}任何漂流瓶</div>`;
+      } else {
+        container.innerHTML = items.map(b => `<div class="bottle-card"><span class="emotion-tag">${b.emotion||'倾诉'}</span><div class="bottle-text">${escapeHtml((b.text||'').substring(0,120))}…</div><div class="bottle-meta">${b.thrown_time||''} · ${b.bottle_style||''}${b.contact ? ' · 📮 '+escapeHtml(b.contact) : ''}</div></div>`).join('');
+      }
+    } catch(e) {}
+  } else if (tab === 'chats') {
+    try {
+      const r = await fetch(`${API}/api/chatrooms`, {headers: authHeaders()});
+      const rooms = (await r.json()).rooms || [];
+      if (rooms.length === 0) { container.innerHTML = '<div class="empty-state"><span class="icon">💬</span>还没有海潮对谈<br>回复一个漂流瓶来开始对话</div>'; }
+      else { container.innerHTML = rooms.map(room => `<div class="bottle-card" onclick="openChatRoom('${room.id}')"><span class="emotion-tag">💬 对谈中</span><div class="bottle-text">${room.message_count} 条消息 · ${new Date(room.last_active*1000).toLocaleString()}</div></div>`).join(''); }
+    } catch(e) {}
+  }
+}
+
+function switchHutTab(tab, ev) {
+  document.querySelectorAll('#scene-hut .tab').forEach(t => t.classList.remove('active'));
+  (ev && ev.target ? ev.target : document.querySelector('#scene-hut .tab')).classList.add('active');
+  loadHutData(tab);
+}
+
+// ═══════════════════════════════════════════
+// CALM COVE (静心湾)
+// ═══════════════════════════════════════════
+let calmTab = 'mood';
+let breathActive = false;
+let breathPhase = 0; // 0=inhale, 1=hold, 2=exhale
+let breathTimer = null;
+let selectedMood = '';
+
+function switchCalmTab(tab, ev) {
+  calmTab = tab;
+  document.querySelectorAll('#scene-calmcove .tab').forEach(t => t.classList.remove('active'));
+  (ev && ev.target ? ev.target : document.querySelector('#scene-calmcove .tab')).classList.add('active');
+  document.getElementById('calm-mood').style.display = tab === 'mood' ? 'block' : 'none';
+  document.getElementById('calm-breath').style.display = tab === 'breath' ? 'block' : 'none';
+  document.getElementById('calm-treehole').style.display = tab === 'treehole' ? 'block' : 'none';
+  if (tab === 'mood') loadMoods();
+  if (tab === 'treehole') pickupTreehole();
+}
+
+// Mood recording
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.mood-btn')) {
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    e.target.closest('.mood-btn').classList.add('selected');
+    selectedMood = e.target.closest('.mood-btn').dataset.mood;
+  }
+});
+
+async function recordMood() {
+  if (!selectedMood) { toast('请先选择一个情绪天气'); return; }
+  const note = document.getElementById('moodNote').value.trim();
+  try {
+    const r = await fetch(`${API}/api/calmcove/mood`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({mood: selectedMood, note})
+    });
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    document.getElementById('moodNote').value = '';
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    selectedMood = '';
+    if (data.insight) document.getElementById('moodInsight').innerHTML = `💬 ${data.insight}`;
+    if (data.crisis) showCrisisOverlay(data.entry?.helplines || data.helplines);
+    loadMoods();
+    toast('心情已记录 🌊');
+  } catch(e) { toast('记录失败...'); }
+}
+
+async function loadMoods() {
+  try {
+    const r = await fetch(`${API}/api/calmcove/moods`, {headers: authHeaders()});
+    const data = await r.json();
+    const moods = data.moods || [];
+    const container = document.getElementById('moodHistory');
+    if (moods.length === 0) {
+      container.innerHTML = '<span style="color:var(--text-dim);font-size:.8em">还没有心情记录</span>';
+      return;
+    }
+    const weathers = data.weathers || {};
+    container.innerHTML = moods.slice(0, 30).reverse().map(m => {
+      const w = weathers[m.mood] || {};
+      return `<div class="mood-dot" style="background:${w.color||'#888'}" title="${m.mood}: ${m.time}\n${m.note||''}"></div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// Breathing wave
+function toggleBreathing() {
+  if (breathActive) { stopBreathing(); return; }
+  breathActive = true;
+  document.getElementById('breathBtn').textContent = '停止';
+  document.getElementById('breathGuide').textContent = '跟着海浪的节奏...';
+  runBreathCycle();
+}
+
+function stopBreathing() {
+  breathActive = false; breathPhase = 0;
+  clearTimeout(breathTimer);
+  const circle = document.getElementById('breathCircle');
+  circle.classList.remove('inhaling');
+  document.getElementById('breathText').textContent = '开始';
+  document.getElementById('breathBtn').textContent = '开始呼吸练习';
+  document.getElementById('breathGuide').textContent = '准备好了吗？跟着海浪一起呼吸';
+}
+
+function runBreathCycle() {
+  if (!breathActive) return;
+  const circle = document.getElementById('breathCircle');
+  const text = document.getElementById('breathText');
+
+  if (breathPhase === 0) {
+    // Inhale 4s
+    text.textContent = '吸气';
+    circle.classList.add('inhaling');
+    breathTimer = setTimeout(() => { breathPhase = 1; runBreathCycle(); }, 4000);
+  } else if (breathPhase === 1) {
+    // Hold 4s
+    text.textContent = '屏息';
+    breathTimer = setTimeout(() => { breathPhase = 2; runBreathCycle(); }, 4000);
+  } else {
+    // Exhale 6s
+    text.textContent = '呼气';
+    circle.classList.remove('inhaling');
+    breathTimer = setTimeout(() => { breathPhase = 0; runBreathCycle(); }, 6000);
+  }
+}
+
+// Tree hole
+async function throwTreehole() {
+  const text = document.getElementById('treeholeText').value.trim();
+  if (!text) { toast('请写下你想倾诉的内容'); return; }
+  try {
+    const r = await fetch(`${API}/api/calmcove/treehole/throw`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({text})
+    });
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    document.getElementById('treeholeText').value = '';
+    if (data.crisis) { showCrisisOverlay(data.helplines); return; }
+    toast('树洞瓶已投入，它会被温柔地接住 🕳');
+    pickupTreehole();
+  } catch(e) { toast('投入失败...'); }
+}
+
+async function pickupTreehole() {
+  try {
+    const r = await fetch(`${API}/api/calmcove/treehole`, {headers: authHeaders()});
+    const data = await r.json();
+    const bottles = data.bottles || [];
+    const echoOptions = data.echoes || [];
+    const container = document.getElementById('treeholeList');
+    if (bottles.length === 0) {
+      container.innerHTML = '<div class="empty-state"><span class="icon">🕳</span>暂时没有树洞瓶<br>稍后再来看看</div>';
+      return;
+    }
+    container.innerHTML = bottles.map(b => `
+      <div class="treehole-card">
+        <div class="th-text">${escapeHtml(b.text.substring(0, 200))}${b.text.length>200?'…':''}</div>
+        <div class="th-echoes">
+          ${(b.echoes||[]).slice(0,5).map(e => `<span class="echo-chip">${e.emoji} ${e.text}</span>`).join('')}
+          ${(b.echoes||[]).length > 0 ? `<span style="font-size:.72em;color:var(--text-dim)">+${b.echoes.length}个回响</span>` : ''}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          ${echoOptions.map(eo => `<span class="echo-chip" onclick="sendEcho('${b.id}','${eo.id}')">${eo.emoji} ${eo.text}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function sendEcho(bottleId, echoId) {
+  try {
+    const r = await fetch(`${API}/api/calmcove/treehole/echo`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({bottle_id: bottleId, echo_id: echoId})
+    });
+    const data = await r.json();
+    if (data.error) { toast(data.error); return; }
+    toast('你的回响已送达 💙');
+    pickupTreehole();
+  } catch(e) {}
+}
+
+// Crisis overlay
+function showCrisisOverlay(helplines) {
+  const existing = document.querySelector('.crisis-overlay');
+  if (existing) existing.remove();
+  const lines = (helplines || []).map(h =>
+    `<div class="helpline-item"><strong>${h.name}</strong><br><a href="tel:${h.number}">${h.number}</a></div>`
+  ).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'crisis-overlay';
+  overlay.innerHTML = `
+    <div class="crisis-card">
+      <span class="crisis-icon">🫂</span>
+      <h3>我们感觉到你正独自面对巨大的风浪</h3>
+      <p class="crisis-msg">你不是一个人。这些灯塔连接着真正能拉住你的手的人。<br>请让我为你接通。</p>
+      ${lines}
+      <button class="crisis-close" onclick="this.closest('.crisis-overlay').remove()">我知道了，谢谢</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+init();
+</script>
+<script>
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(() => {
+    console.log('[无尽海] SW registered');
+  }).catch(() => {});
+}
+
+// PWA Install
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  const bar = document.getElementById('install-bar');
+  if (bar) bar.style.display = 'flex';
+  console.log('[无尽海] 可安装 PWA');
+});
+document.getElementById('install-btn').addEventListener('click', () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    installPrompt.userChoice.then((r) => {
+      console.log('[无尽海] 安装结果:', r.outcome);
+      installPrompt = null;
+      const bar = document.getElementById('install-bar');
+      if (bar) bar.style.display = 'none';
+    });
+  }
+});
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  const bar = document.getElementById('install-bar');
+  if (bar) bar.style.display = 'none';
+  console.log('[无尽海] PWA 已安装');
+});
+</script>
+</body>
+</html>
