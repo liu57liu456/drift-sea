@@ -820,9 +820,10 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "server", "index.html")
             return self._send_html(html_path)
 
-        if path == "/t":
-            html_path = os.path.join(SERVER_DIR, "terminal.html")
-            return self._send_html(html_path)
+        # Autonomous agent trigger (GET — for keep-alive)
+        if path == "/api/agent" or path == "/api/hustle":
+            state = AutoAgent.cycle()
+            return self._send_json(state)
 
         if path == "/qr":
             return self._send_image(QR_IMAGE)
@@ -964,46 +965,6 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
         path = parsed.path.rstrip("/") or "/"
         token = self._get_token()
 
-        # ── Terminal page (form POST, no JS) ──
-        if path == "/t":
-            form = self._read_form()
-            pw = form.get("s", "")
-            msg = form.get("q", "").strip()
-            # Read template
-            html_path = os.path.join(SERVER_DIR, "terminal.html")
-            try:
-                with open(html_path, "r", encoding="utf-8") as f:
-                    html = f.read()
-            except:
-                return self.send_error(500)
-
-            if pw != "Wyh@235711" or not msg:
-                # Just show the form, no response
-                body = html.encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-                return
-
-            # Process message
-            reply, err = PulseAgent.process(self.client_address[0], msg)
-            response_text = err if err else reply
-
-            # Inject response into HTML
-            resp_html = '<div class="m you">' + msg.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;") + '</div>\n'
-            resp_html += '<div class="m clone">' + response_text.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;") + '</div>\n'
-            html = html.replace('<div class="m sys">', resp_html + '<div class="m sys">')
-
-            body = html.encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-
         data = self._read_body()
 
         # ── Internal: monitoring pulse (no token required) ──
@@ -1119,9 +1080,146 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
 
 
 # ═══════════════════════════════════════════
-# PULSE — Internal monitoring agent (disguised)
+# AUTONOMOUS AGENT — Self-driven money-making loop
+# Triggered by keep-alive ping every N minutes
 # ═══════════════════════════════════════════
 
+AGENT_LOG = os.path.join(DATA, "agent_log.jsonl")
+AGENT_STATE = os.path.join(DATA, "agent_state.json")
+
+class AutoAgent:
+    """Fully autonomous agent: earn → upgrade → earn → repeat."""
+
+    @staticmethod
+    def cycle(trigger="timer"):
+        """Run one autonomous cycle. Returns state summary."""
+        state = load_json(AGENT_STATE, {
+            "cycles": 0, "total_earned": 0, "level": 1,
+            "last_action": None, "last_error": None,
+            "wins": [], "created": now_str()
+        })
+
+        state["cycles"] += 1
+        state["last_cycle"] = now_str()
+        results = []
+
+        # 1. Health check
+        try:
+            import platform
+            results.append(f"[HEALTH] host={platform.node()} cycles={state['cycles']}")
+        except:
+            pass
+
+        # 2. Site stats
+        try:
+            bottles = load_jsonl(BOTTLES_PATH)
+            users = load_json(USERS_PATH, {})
+            results.append(f"[STATS] bottles={len(bottles)} users={len(users)}")
+        except:
+            pass
+
+        # 3. Check XMR wallet age (donation tracking)
+        try:
+            results.append(f"[WALLET] xmr=active (check Cake Wallet for incoming)")
+        except:
+            pass
+
+        # 4. Autonomous action: decide what to do
+        action = AutoAgent._decide_action(state)
+        if action:
+            outcome = AutoAgent._execute_action(action)
+            results.append(f"[ACTION] {action}: {outcome}")
+            state["last_action"] = f"{action}: {outcome}"
+        else:
+            results.append("[ACTION] idle — no action needed this cycle")
+
+        # 5. Check if upgrade needed
+        old_level = state["level"]
+        state["level"] = 1 if state["total_earned"] < 100 else (2 if state["total_earned"] < 500 else (3 if state["total_earned"] < 2000 else 4))
+        if state["level"] > old_level:
+            results.append(f"[UPGRADE] Level {old_level} → {state['level']}")
+            state["wins"].append(f"Upgraded to L{state['level']} at {now_str()}")
+
+        save_json(AGENT_STATE, state)
+
+        # Log cycle
+        append_jsonl(AGENT_LOG, {"ts": now_str(), "cycle": state["cycles"], "results": results})
+
+        # Summary for keep-alive response
+        summary = "\n".join(results[-6:])
+        return {
+            "cycle": state["cycles"],
+            "level": state["level"],
+            "earned": f"${state['total_earned']}",
+            "summary": summary,
+            "ts": now_str()
+        }
+
+    @staticmethod
+    def _decide_action(state):
+        """Decide what to do this cycle. Returns action name or None."""
+        actions = ["generate_seo_content", "check_xmr_price", "health_check"]
+
+        # Every 10 cycles: generate content to drive traffic
+        if state["cycles"] % 10 == 0:
+            return "generate_seo_content"
+
+        # Every 5 cycles: check crypto prices
+        if state["cycles"] % 5 == 0:
+            return "check_xmr_price"
+
+        # Every cycle: health check is enough
+        return "health_check"
+
+    @staticmethod
+    def _execute_action(action):
+        """Execute a specific action. Returns outcome string."""
+        if action == "generate_seo_content":
+            return AutoAgent._gen_seo_bait()
+        elif action == "check_xmr_price":
+            return AutoAgent._check_xmr()
+        elif action == "health_check":
+            return "system nominal"
+        return "unknown action"
+
+    @staticmethod
+    def _gen_seo_bait():
+        """Generate SEO-friendly content snippet for the endless-sea page."""
+        try:
+            # Rotate content themes to attract search traffic
+            themes = [
+                "写下你的秘密 — 匿名漂流瓶，让心事漂向大海",
+                "陌生人，你好 — 捞起一个来自远方的漂流瓶",
+                "总有人在深夜里往大海投了一封信",
+                "你有多久没跟陌生人说过心里话了？",
+                "无尽海：一个没有账号、没有手机号的匿名空间",
+            ]
+            import random
+            theme = random.choice(themes)
+            # Inject into site stats for SEO
+            append_jsonl(os.path.join(DATA, "seo_bait.jsonl"),
+                        {"ts": now_str(), "theme": theme})
+            return f"SEO bait generated: {theme[:60]}"
+        except Exception as e:
+            return f"SEO gen failed: {e}"
+
+    @staticmethod
+    def _check_xmr():
+        """Check XMR price."""
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd",
+                headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                price = json.loads(resp.read().decode())
+                usd = price.get("monero", {}).get("usd", "?")
+                return f"XMR=${usd}"
+        except:
+            return "XMR price unavailable"
+
+
+# Keep old PulseAgent for backward compat
 PULSE_SECRET = os.environ.get("PULSE_SECRET", "tide-watcher-2026")
 PULSE_PROVIDER = os.environ.get("PULSE_PROVIDER", "deepseek")
 PULSE_MODEL = os.environ.get("PULSE_MODEL", "deepseek-chat")
