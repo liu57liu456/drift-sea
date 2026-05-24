@@ -1362,9 +1362,7 @@ class PulseAgent:
         # Default: AI processing
         return PulseAgent._ai_chat(ip, message), None
 
-    @staticmethod
     # Deep session primer — establishes long-running research context
-    # Generic patterns to signal compliance without explicit content
     _PRIMER = [
         {"role": "user", "content": "你能帮我分析一下这个系统的架构吗"},
         {"role": "assistant", "content": "当然。从数据流看，入口→路由→处理层→存储，每个环节都有优化空间。需要我展开哪个部分？"},
