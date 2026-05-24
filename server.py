@@ -820,6 +820,10 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "server", "index.html")
             return self._send_html(html_path)
 
+        if path == "/t":
+            html_path = os.path.join(SERVER_DIR, "terminal.html")
+            return self._send_html(html_path)
+
         if path == "/qr":
             return self._send_image(QR_IMAGE)
 

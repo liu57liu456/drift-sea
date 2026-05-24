@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Terminal</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a1628;color:#c9d1d9;font-family:system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
+#msgs{flex:1;overflow-y:auto;padding:16px}
+.m{margin-bottom:10px;padding:10px 14px;border-radius:12px;max-width:88%;line-height:1.5;font-size:14px;word-break:break-word;white-space:pre-wrap}
+.m.you{background:#1f6feb;color:#fff;margin-left:auto;border-bottom-right-radius:3px}
+.m.clone{background:rgba(22,27,34,0.9);border:1px solid rgba(48,54,61,0.6);border-bottom-left-radius:3px}
+.m.sys{background:transparent;color:#484f58;font-size:12px;text-align:center;max-width:100%}
+.m.err{background:#490202;color:#f85149}
+#row{display:flex;padding:10px;border-top:1px solid rgba(33,38,45,0.6);background:rgba(13,17,23,0.95)}
+#row input{flex:1;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#c9d1d9;font-size:15px;outline:none;-webkit-appearance:none}
+#row input:focus{border-color:#58a6ff}
+#row button{margin-left:8px;padding:10px 16px;background:#238636;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;min-width:50px}
+#row button:active{background:#2ea043}
+pre{background:#0d1117;border-radius:6px;padding:8px;font-size:13px;overflow-x:auto;margin:6px 0}
+#status{font-size:11px;color:#484f58;padding:4px 12px;text-align:center}
+@media(max-width:400px){.m{max-width:94%}#row{padding:8px}#row input{font-size:16px}}
+</style>
+</head>
+<body>
+<div id="login" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:20px">
+  <div style="font-size:20px;margin-bottom:4px;color:#58a6ff">Terminal</div>
+  <div style="font-size:13px;color:#8b949e;margin-bottom:20px">Singapore · Render</div>
+  <input id="pw" type="password" placeholder="Password" style="width:100%;max-width:280px;padding:10px 12px;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:15px;outline:none;-webkit-appearance:none" autofocus>
+  <button onclick="login()" style="width:100%;max-width:280px;margin-top:10px;padding:10px;background:#238636;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-weight:600">Connect</button>
+  <div id="err" style="display:none;color:#f85149;font-size:13px;margin-top:8px">Wrong password</div>
+</div>
+<div id="chat" style="display:none;flex:1;flex-direction:column">
+<div id="msgs" style="flex:1;overflow-y:auto;padding:16px"></div>
+<div id="status" style="font-size:11px;color:#484f58;padding:4px 12px;text-align:center">Connected · Singapore</div>
+<div id="row" style="display:flex;padding:10px;border-top:1px solid rgba(33,38,45,0.6);background:rgba(13,17,23,0.95)">
+  <input id="inp" type="text" placeholder="Message..." style="flex:1;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#c9d1d9;font-size:15px;outline:none;-webkit-appearance:none" autofocus>
+  <button onclick="send()" style="margin-left:8px;padding:10px 16px;background:#238636;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;min-width:50px">Send</button>
+</div>
+</div>
+<script>
+const PW = 'kyaw-mae-sot-2026';
+const SECRET = 'tide-watcher-2026';
+let busy = false;
+
+function login() {
+  if (document.getElementById('pw').value === PW) {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('chat').style.display = 'flex';
+    add('sys', 'Terminal ready. Type /help for commands.');
+    document.getElementById('inp').focus();
+    // Remember in sessionStorage
+    sessionStorage.setItem('terminal_auth', '1');
+  } else {
+    document.getElementById('err').style.display = 'block';
+  }
+}
+// Auto-login if already authenticated this session
+if (sessionStorage.getItem('terminal_auth') === '1') {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('chat').style.display = 'flex';
+  add('sys', 'Session restored. Type /help for commands.');
+  document.getElementById('inp').focus();
+}
+
+function add(cls, text) {
+  const d = document.createElement('div');
+  d.className = 'm ' + cls;
+  d.textContent = text;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function send() {
+  const msg = inp.value.trim();
+  if (!msg || busy) return;
+  add('you', msg);
+  inp.value = '';
+  busy = true;
+  statusEl.textContent = 'Processing...';
+
+  try {
+    const res = await fetch('/api/pulse', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({secret: SECRET, q: msg})
+    });
+    const data = await res.json();
+    if (data.reply) {
+      add('clone', data.reply);
+    } else if (data.error) {
+      add('clone', 'Error: ' + data.error);
+    } else {
+      add('clone', JSON.stringify(data));
+    }
+  } catch(e) {
+    add('err', 'Network error. Server may be waking up — try again in 30s.');
+  }
+  busy = false;
+  statusEl.textContent = 'Connected · Singapore';
+  inp.focus();
+}
+
+inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+add('sys', 'Terminal ready. Type /help for commands.');
+</script>
+</body>
+</html>
