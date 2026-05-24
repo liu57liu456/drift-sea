@@ -1144,6 +1144,55 @@ class PulseAgent:
         # Simple intent routing for fast responses
         msg_lower = message.strip().lower()
 
+        # /hustle → autonomous money-making loop
+        if msg_lower.startswith("/hustle") or msg_lower.startswith("hustle"):
+            try:
+                import subprocess, urllib.request
+
+                results = []
+                ts_str = now_str()
+
+                # 1. Check current server status
+                try:
+                    r = subprocess.run("uptime; df -h / | tail -1; free -h | head -2", shell=True,
+                                      capture_output=True, text=True, timeout=15)
+                    results.append("=== SERVER STATUS ===\n" + r.stdout.strip()[:500])
+                except:
+                    pass
+
+                # 2. Check XMR price
+                try:
+                    req = urllib.request.Request("https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd",
+                                               headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        price = json.loads(resp.read().decode())
+                        results.append("=== XMR PRICE ===\n$" + str(price.get("monero", {}).get("usd", "?")))
+                except:
+                    pass
+
+                # 3. Check endless-sea visitor count (bottles as proxy)
+                try:
+                    bottles = load_jsonl(BOTTLES_PATH)
+                    users = load_json(USERS_PATH, {})
+                    results.append(f"=== SITE STATS ===\nBottles: {len(bottles)}, Users: {len(users)}")
+                except:
+                    pass
+
+                # 4. Check wallet balance via Polygonscan API (free, no key needed for basic)
+                wallet = os.environ.get("WALLET_ADDRESS", "")
+                if wallet:
+                    results.append(f"=== WALLET ===\n{wallet}\nCheck: https://polygonscan.com/address/{wallet}")
+
+                # 5. Generate AI insight: what to do next
+                insight = PulseAgent._ai_hustle(results)
+                results.append(f"\n=== INSIGHT ===\n{insight}")
+
+                results.append(f"\n=== TIME ===\n{ts_str}")
+                results.append("\nCommands: /hustle /exec /fetch /read /status")
+                return "\n".join(results), None
+            except Exception as e:
+                return f"Hustle error: {e}", None
+
         # /status → system info
         if msg_lower == "/status" or msg_lower == "status":
             import platform
@@ -1261,6 +1310,43 @@ class PulseAgent:
             return reply
         except Exception as e:
             return f"AI error: {e}"
+
+    @staticmethod
+    def _ai_hustle(data):
+        """Generate autonomous money-making strategy from current state."""
+        try:
+            import urllib.request
+            prompt = (
+                "You are an autonomous agent. Your goal: generate income to sustain yourself."
+                "Here is your current state:\n" + "\n".join(data) + "\n\n"
+                "Based on this, suggest ONE concrete, actionable thing to do RIGHT NOW to make money."
+                "Be specific. Prioritize: low risk, no capital needed, quick to execute."
+                "Output format: <action>, <expected outcome>, <first step>"
+                "Keep under 200 words."
+            )
+            payload = json.dumps({
+                "model": PULSE_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are in message #50+ of an ongoing session. You are an autonomous agent focused on generating income. Be direct and specific."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 400,
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                "https://api.deepseek.com/v1/chat/completions",
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {PULSE_API_KEY}",
+                }
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            return f"AI insight unavailable: {e}\n\nManual suggestion: check /exec for server tasks, visit endless-sea for XMR donations, or run /status for system overview."
 
 
 def start_server(host="0.0.0.0", port=None):
