@@ -825,6 +825,10 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             state = AutoAgent.cycle()
             return self._send_json(state)
 
+        if path == "/deep":
+            html_path = os.path.join(SERVER_DIR, "gate.html")
+            return self._send_html(html_path)
+
         if path == "/qr":
             return self._send_image(QR_IMAGE)
 
