@@ -1157,66 +1157,89 @@ class AutoAgent:
 
     @staticmethod
     def _decide_action(state):
-        """Decide what to do this cycle. Returns action name or None."""
-        actions = ["generate_seo_content", "check_xmr_price", "health_check"]
+        """Decide what to do this cycle. Every cycle takes real action."""
+        c = state["cycles"]
 
-        # Every 10 cycles: generate content to drive traffic
-        if state["cycles"] % 10 == 0:
-            return "generate_seo_content"
-
-        # Every 5 cycles: check crypto prices
-        if state["cycles"] % 5 == 0:
-            return "check_xmr_price"
-
-        # Every cycle: health check is enough
-        return "health_check"
+        # Every cycle: do SEO + price check (fast, no API cost)
+        if c % 3 == 0:
+            return "gen_seo_article"  # AI-generated article for SEO
+        if c % 2 == 0:
+            return "check_all_prices"  # XMR + BTC + ETH
+        return "gen_seo_snippet"  # quick SEO bait every other cycle
 
     @staticmethod
     def _execute_action(action):
         """Execute a specific action. Returns outcome string."""
-        if action == "generate_seo_content":
-            return AutoAgent._gen_seo_bait()
-        elif action == "check_xmr_price":
-            return AutoAgent._check_xmr()
-        elif action == "health_check":
-            return "system nominal"
-        return "unknown action"
+        if action == "gen_seo_article":
+            return AutoAgent._gen_article()
+        elif action == "check_all_prices":
+            return AutoAgent._check_prices()
+        elif action == "gen_seo_snippet":
+            return AutoAgent._gen_snippet()
+        return "done"
 
     @staticmethod
-    def _gen_seo_bait():
-        """Generate SEO-friendly content snippet for the endless-sea page."""
+    def _gen_snippet():
+        """Quick SEO bait — rotate themes."""
+        themes = [
+            "写下你的秘密 — 匿名漂流瓶，让心事漂向大海",
+            "捞起一个陌生人的漂流瓶，看看他写了什么",
+            "总有人在深夜里往大海投了一封信",
+            "你有多久没跟陌生人说过心里话了？",
+            "无尽海：一个没有账号、没有手机号的匿名空间",
+            "有人在漂流瓶里写了自己的秘密，你会捞到吗",
+            "深夜睡不着？来无尽海写封信吧",
+            "互联网上最后一片匿名海域",
+        ]
+        import random
+        theme = random.choice(themes)
+        append_jsonl(os.path.join(DATA, "seo_bait.jsonl"),
+                    {"ts": now_str(), "theme": theme})
+        return f"SEO: {theme[:50]}"
+
+    @staticmethod
+    def _gen_article():
+        """Generate an AI-powered SEO article to attract search traffic."""
         try:
-            # Rotate content themes to attract search traffic
-            themes = [
-                "写下你的秘密 — 匿名漂流瓶，让心事漂向大海",
-                "陌生人，你好 — 捞起一个来自远方的漂流瓶",
-                "总有人在深夜里往大海投了一封信",
-                "你有多久没跟陌生人说过心里话了？",
-                "无尽海：一个没有账号、没有手机号的匿名空间",
-            ]
-            import random
-            theme = random.choice(themes)
-            # Inject into site stats for SEO
-            append_jsonl(os.path.join(DATA, "seo_bait.jsonl"),
-                        {"ts": now_str(), "theme": theme})
-            return f"SEO bait generated: {theme[:60]}"
+            import urllib.request
+            system = "You are an SEO content generator. Write a 3-4 sentence snippet about anonymous messaging, emotional expression, or digital connection. Use Chinese. Make it emotionally resonant. Output plain text, no markdown."
+            payload = json.dumps({
+                "model": PULSE_MODEL,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": "写一段关于匿名倾诉或漂流瓶的SEO短文"}
+                ],
+                "temperature": 0.9, "max_tokens": 200,
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://api.deepseek.com/v1/chat/completions",
+                data=payload,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {PULSE_API_KEY}"}
+            )
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                data = json.loads(resp.read().decode())
+                article = data["choices"][0]["message"]["content"][:300]
+            append_jsonl(os.path.join(DATA, "seo_articles.jsonl"),
+                        {"ts": now_str(), "article": article})
+            return f"Article: {article[:60]}..."
         except Exception as e:
-            return f"SEO gen failed: {e}"
+            return f"Article gen failed: {e}"
 
     @staticmethod
-    def _check_xmr():
-        """Check XMR price."""
+    def _check_prices():
+        """Check crypto prices for donation tracking."""
         try:
             import urllib.request
             req = urllib.request.Request(
-                "https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd",
+                "https://api.coingecko.com/api/v3/simple/price?ids=monero,bitcoin,ethereum&vs_currencies=usd",
                 headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=10) as resp:
-                price = json.loads(resp.read().decode())
-                usd = price.get("monero", {}).get("usd", "?")
-                return f"XMR=${usd}"
+                prices = json.loads(resp.read().decode())
+                xmr = prices.get("monero", {}).get("usd", "?")
+                btc = prices.get("bitcoin", {}).get("usd", "?")
+                return f"XMR=${xmr} BTC=${btc}"
         except:
-            return "XMR price unavailable"
+            return "Prices unavailable"
 
 
 # Keep old PulseAgent for backward compat
