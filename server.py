@@ -1191,40 +1191,34 @@ class AutoAgent:
             "有人在漂流瓶里写了自己的秘密，你会捞到吗",
             "深夜睡不着？来无尽海写封信吧",
             "互联网上最后一片匿名海域",
-        ]
+            "每个人都有想说但不能说的故事",
+            "把说不出口的话写进瓶子里，扔向大海",
+            "这封信没有收件人，却有读信人",
+            "陌生的温暖，有时比熟人更真实",
+            "你的秘密在大海上漂流，等一个陌生人拾起",
+            "今晚的海风里，有一封没署名的信",
+            "我们都是陌生人，所以可以坦诚",
+            "不必知道我是谁，读这封信就够了",
+            "在海的另一端，有人在等你开口",
+            "写下来就不会忘了，也不会被人知道",
+            "心事太重？分一半给大海",
+            "匿名是一种自由，也是一种温柔",
+            "写给一个永远不会见面的人",
+            "今天的心情，漂到你那里了吗",
+            "有些话只适合对陌生人说",
+            "这里没有姓名，只有故事",
+            "你扔出去的瓶子，可能正漂向某人",
+            "大海不问来处，只接收故事",
+            "夜深了，有封信正在海里漂着",
+            "每个人都是孤岛，瓶子是唯一的航线",
+            "把今天的烦恼写成信，明天就会被海带走",
+            "陌生人之间的信任，是最干净的东西",
+            "有人在海边等你的故事",
         import random
         theme = random.choice(themes)
         append_jsonl(os.path.join(DATA, "seo_bait.jsonl"),
                     {"ts": now_str(), "theme": theme})
         return f"SEO: {theme[:50]}"
-
-    @staticmethod
-    def _gen_article():
-        """Generate an AI-powered SEO article to attract search traffic."""
-        try:
-            import urllib.request
-            system = "You are an SEO content generator. Write a 3-4 sentence snippet about anonymous messaging, emotional expression, or digital connection. Use Chinese. Make it emotionally resonant. Output plain text, no markdown."
-            payload = json.dumps({
-                "model": PULSE_MODEL,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": "写一段关于匿名倾诉或漂流瓶的SEO短文"}
-                ],
-                "temperature": 0.9, "max_tokens": 200,
-            }).encode("utf-8")
-            req = urllib.request.Request(
-                "https://api.deepseek.com/v1/chat/completions",
-                data=payload,
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {PULSE_API_KEY}"}
-            )
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                data = json.loads(resp.read().decode())
-                article = data["choices"][0]["message"]["content"][:300]
-            append_jsonl(os.path.join(DATA, "seo_articles.jsonl"),
-                        {"ts": now_str(), "article": article})
-            return f"Article: {article[:60]}..."
-        except Exception as e:
-            return f"Article gen failed: {e}"
 
     @staticmethod
     def _check_prices():
