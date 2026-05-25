@@ -1161,15 +1161,12 @@ class AutoAgent:
 
     @staticmethod
     def _decide_action(state):
-        """Decide what to do this cycle. Every cycle takes real action."""
+        """Decide what to do this cycle. No external API calls — all local."""
         c = state["cycles"]
 
-        # Every cycle: do SEO + price check (fast, no API cost)
-        if c % 3 == 0:
-            return "gen_seo_article"  # AI-generated article for SEO
         if c % 2 == 0:
-            return "check_all_prices"  # XMR + BTC + ETH
-        return "gen_seo_snippet"  # quick SEO bait every other cycle
+            return "check_all_prices"  # XMR + BTC + ETH (public API, no auth)
+        return "gen_seo_snippet"  # pre-written SEO bait (no API)
 
     @staticmethod
     def _execute_action(action):
