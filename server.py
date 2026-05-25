@@ -1171,9 +1171,7 @@ class AutoAgent:
     @staticmethod
     def _execute_action(action):
         """Execute a specific action. Returns outcome string."""
-        if action == "gen_seo_article":
-            return AutoAgent._gen_article()
-        elif action == "check_all_prices":
+        if action == "check_all_prices":
             return AutoAgent._check_prices()
         elif action == "gen_seo_snippet":
             return AutoAgent._gen_snippet()
