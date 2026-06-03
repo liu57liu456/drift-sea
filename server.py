@@ -1093,7 +1093,7 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             if ext not in CLOUD_ALLOWED_EXT:
                 return self._send_json({"error": f"不支持的文件类型: {ext}"}, 400)
             r2_key = "cloud_" + uuid.uuid4().hex + ext
-            url = oss_presigned_url("PUT", r2_key, expires=300)
+            url = oss_presigned_url("PUT", r2_key, content_type=mime, expires=300)
             if not url: return self._send_json({"error": "OSS 未配置"}, 500)
             entry = CloudManager.add_file(name, int(size), mime, r2_key)
             CloudManager.audit("upload", name, ip)
@@ -1352,7 +1352,7 @@ class PulseAgent:
 # CLOUD: OSS Presigned URL (pure stdlib)
 # ═══════════════════════════════════════════
 
-def oss_presigned_url(method, object_key, expires=300):
+def oss_presigned_url(method, object_key, content_type="", expires=300):
     ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
     sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
     endpoint = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
@@ -1365,7 +1365,7 @@ def oss_presigned_url(method, object_key, expires=300):
     exp = int(now.timestamp()) + expires
 
     resource = f"/{bucket}/{object_key}"
-    string_to_sign = f"{method}\n\n\n{exp}\n{resource}"
+    string_to_sign = f"{method}\n\n{content_type}\n{exp}\n{resource}"
     h = hmac.new(sk.encode(), string_to_sign.encode(), hashlib.sha1).digest()
     import base64
     sig = _uq(base64.b64encode(h).decode(), safe='')
