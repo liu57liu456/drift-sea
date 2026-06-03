@@ -2,7 +2,7 @@
 无尽海 (Endless Sea) — Backend Server
 A complete virtual world where drift bottles carry emotions between strangers.
 """
-import json, os, re, time, uuid, hashlib
+import json, os, re, time, uuid, hashlib, hmac
 from datetime import datetime, timezone, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -59,6 +59,20 @@ MOODS_PATH = os.path.join(DATA, "moods.jsonl")
 TREEHOLE_PATH = os.path.join(DATA, "treehole_bottles.jsonl")
 ECHOES_PATH = os.path.join(DATA, "echoes.jsonl")
 QR_IMAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "qr.jpg")
+CLOUD_PATH = os.path.join(DATA, "cloud_files.jsonl")
+CLOUD_AUDIT = os.path.join(DATA, "cloud_audit.jsonl")
+CLOUD_PIN_ATTEMPTS = defaultdict(list)  # IP → [ts, ts, ...]
+
+# Cloud: file types allowed for upload (prevent malware/exe abuse)
+CLOUD_ALLOWED_EXT = {
+    ".txt", ".md", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp",
+    ".mp3", ".wav", ".ogg", ".mp4", ".webm", ".mov",
+    ".zip", ".rar", ".7z", ".tar", ".gz",
+    ".py", ".js", ".html", ".css", ".json", ".xml", ".csv", ".log",
+    ".c", ".cpp", ".h", ".java", ".go", ".rs",
+    ".ipynb", ".sql", ".xml", ".yaml", ".yml", ".toml",
+}
 
 # ── Content filter ──
 FORBIDDEN = re.compile(
@@ -499,6 +513,101 @@ class BlockManager:
 
 
 # ═══════════════════════════════════════════
+# CLOUD DRIVE (云盘) — File upload/download via R2
+# ═══════════════════════════════════════════
+
+class CloudManager:
+
+    @staticmethod
+    def list_files():
+        files = load_jsonl(CLOUD_PATH)
+        files.sort(key=lambda f: f.get("uploaded_ts", 0), reverse=True)
+        return [{
+            "id": f["id"],
+            "name": f["name"],
+            "size": f["size"],
+            "type": f.get("type", ""),
+            "uploaded_at": f["uploaded_at"],
+            "downloads": f.get("downloads", 0),
+        } for f in files]
+
+    @staticmethod
+    def get_file(file_id):
+        for f in load_jsonl(CLOUD_PATH):
+            if f["id"] == file_id:
+                return f
+        return None
+
+    @staticmethod
+    def add_file(name, size, mime, r2_key):
+        entry = {
+            "id": "file_" + uuid.uuid4().hex[:10],
+            "name": name,
+            "size": size,
+            "type": mime,
+            "r2_key": r2_key,
+            "uploaded_at": now_str(),
+            "uploaded_ts": ts(),
+            "downloads": 0,
+        }
+        append_jsonl(CLOUD_PATH, entry)
+        return entry
+
+    @staticmethod
+    def increment_downloads(file_id):
+        files = load_jsonl(CLOUD_PATH)
+        for f in files:
+            if f["id"] == file_id:
+                f["downloads"] = f.get("downloads", 0) + 1
+                tmp = CLOUD_PATH + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as fout:
+                    for entry in files:
+                        fout.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                os.replace(tmp, CLOUD_PATH)
+                return True
+        return False
+
+    @staticmethod
+    def delete_file(file_id):
+        files = load_jsonl(CLOUD_PATH)
+        new_files = [f for f in files if f["id"] != file_id]
+        if len(new_files) == len(files):
+            return False
+        tmp = CLOUD_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fout:
+            for entry in new_files:
+                fout.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        os.replace(tmp, CLOUD_PATH)
+        return True
+
+    @staticmethod
+    def verify_pin(pin):
+        correct = os.environ.get("CLOUD_UPLOAD_PIN", "1234")
+        return isinstance(pin, str) and pin == correct
+
+    @staticmethod
+    def check_rate_limit(ip):
+        """Max 5 failed PIN attempts per 15 min per IP."""
+        now = time.time()
+        attempts = [t for t in CLOUD_PIN_ATTEMPTS.get(ip, []) if now - t < 900]
+        CLOUD_PIN_ATTEMPTS[ip] = attempts
+        return len(attempts) < 5
+
+    @staticmethod
+    def record_attempt(ip):
+        CLOUD_PIN_ATTEMPTS[ip].append(time.time())
+
+    @staticmethod
+    def audit(action, file_name="", ip=""):
+        append_jsonl(CLOUD_AUDIT, {
+            "action": action,
+            "file": file_name,
+            "ip": ip,
+            "time": now_str(),
+        })
+
+
+# ═══════════════════════════════════════════
 # CALM COVE (静心湾) — Mental Wellness Module
 # ═══════════════════════════════════════════
 
@@ -829,6 +938,9 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             html_path = os.path.join(SERVER_DIR, "gate.html")
             return self._send_html(html_path)
 
+        if path == "/cloud":
+            return self._send_html(os.path.join(SERVER_DIR, "cloud.html"))
+
         if path == "/qr":
             return self._send_image(QR_IMAGE)
 
@@ -944,6 +1056,26 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
         if path == "/icon-512.png":
             return self._send_image(os.path.join(SERVER_DIR, "icon-512.png"))
 
+        # ── Cloud: list files ──
+        if path == "/api/cloud/files":
+            return self._send_json({"files": CloudManager.list_files()})
+
+        # ── Cloud: download (redirect to R2 presigned URL) ──
+        if path.startswith("/api/cloud/dl/"):
+            file_id = path.rsplit("/", 1)[-1]
+            f = CloudManager.get_file(file_id)
+            if not f:
+                return self._send_json({"error": "文件不存在"}, 404)
+            url = r2_presigned_url("GET", f["r2_key"], expires=3600)
+            if not url:
+                return self._send_json({"error": "R2 未配置"}, 500)
+            CloudManager.increment_downloads(file_id)
+            self.send_response(302)
+            self.send_header("Location", url)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            return
+
         # ── Health ──
         if path == "/health":
             return self._send_json({"status": "alive", "sea": "无尽海"})
@@ -984,6 +1116,55 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             if err:
                 return self._send_json({"error": err}, 400)
             return self._send_json({"reply": reply})
+
+        # ── Cloud: upload (no token required, uses PIN) ──
+        if path == "/api/cloud/upload":
+            pin = str(data.get("pin", ""))
+            ip = self.client_address[0]
+            if not CloudManager.check_rate_limit(ip):
+                return self._send_json({"error": "尝试次数过多，请15分钟后再试"}, 429)
+            if not CloudManager.verify_pin(pin):
+                CloudManager.record_attempt(ip)
+                return self._send_json({"error": "上传密码错误"}, 403)
+
+            name = (data.get("name") or "").strip()
+            size = data.get("size", 0)
+            mime = data.get("type", "application/octet-stream")
+            if not name:
+                return self._send_json({"error": "文件名不能为空"}, 400)
+            if not isinstance(size, (int, float)) or size <= 0:
+                return self._send_json({"error": "文件大小无效"}, 400)
+            if size > 100 * 1024 * 1024:
+                return self._send_json({"error": "文件超过 100MB 上限"}, 400)
+
+            ext = os.path.splitext(name)[1].lower()
+            if ext not in CLOUD_ALLOWED_EXT:
+                return self._send_json({"error": f"不支持的文件类型: {ext}"}, 400)
+
+            r2_key = "cloud_" + uuid.uuid4().hex + ext
+            url = r2_presigned_url("PUT", r2_key, expires=300)
+            if not url:
+                return self._send_json({"error": "R2 未配置"}, 500)
+
+            entry = CloudManager.add_file(name, int(size), mime, r2_key)
+            CloudManager.audit("upload", name, ip)
+            return self._send_json({"upload_url": url, "file": entry})
+
+        # ── Cloud: delete (no token required, uses PIN) ──
+        if path == "/api/cloud/delete":
+            pin = str(data.get("pin", ""))
+            ip = self.client_address[0]
+            if not CloudManager.check_rate_limit(ip):
+                return self._send_json({"error": "尝试次数过多，请15分钟后再试"}, 429)
+            if not CloudManager.verify_pin(pin):
+                CloudManager.record_attempt(ip)
+                return self._send_json({"error": "密码错误"}, 403)
+            file_id = data.get("file_id", "")
+            ok = CloudManager.delete_file(file_id)
+            if not ok:
+                return self._send_json({"error": "文件不存在"}, 404)
+            CloudManager.audit("delete", file_id, ip)
+            return self._send_json({"deleted": True})
 
         if not token:
             return self._send_json({"error": "需要身份标识 — 请先获取 /api/identity"}, 400)
@@ -1081,6 +1262,68 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             return self._send_json({"echo": echo, "message": "你的回响已送达"})
 
         self.send_error(404)
+
+
+# ═══════════════════════════════════════════
+# CLOUD: R2 Presigned URL (AWS SigV4, pure stdlib)
+# ═══════════════════════════════════════════
+
+def _sigv4_sign(key, msg):
+    return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
+
+def _sigv4_signing_key(secret_key, date_stamp, region, service):
+    k_date = _sigv4_sign(("AWS4" + secret_key).encode("utf-8"), date_stamp)
+    k_region = _sigv4_sign(k_date, region)
+    k_service = _sigv4_sign(k_region, service)
+    return _sigv4_sign(k_service, "aws4_request")
+
+def r2_presigned_url(method, key, expires=300):
+    """Generate presigned URL for Cloudflare R2 PUT/GET. Default 5min TTL."""
+    ak = os.environ.get("R2_ACCESS_KEY_ID", "")
+    sk = os.environ.get("R2_SECRET_ACCESS_KEY", "")
+    endpoint = os.environ.get("R2_ENDPOINT", "").rstrip("/")
+    bucket = os.environ.get("R2_BUCKET", "endless-sea-cloud")
+    region = "auto"
+
+    if not ak or not sk or not endpoint:
+        return None
+
+    from urllib.parse import quote as _uq
+    now = datetime.now(timezone.utc)
+    amz_date = now.strftime("%Y%m%dT%H%M%SZ")
+    date_stamp = now.strftime("%Y%m%d")
+    credential_scope = f"{date_stamp}/{region}/s3/aws4_request"
+
+    algorithm = "AWS4-HMAC-SHA256"
+    credential = f"{ak}/{credential_scope}"
+    canonical_uri = f"/{bucket}/{key}"
+    signed_headers = "host"
+    host = urlparse(endpoint).netloc
+
+    params = [
+        ("X-Amz-Algorithm", algorithm),
+        ("X-Amz-Credential", credential),
+        ("X-Amz-Date", amz_date),
+        ("X-Amz-Expires", str(expires)),
+        ("X-Amz-SignedHeaders", signed_headers),
+    ]
+    canonical_qs = "&".join(f"{_uq(k, safe='')}={_uq(v, safe='')}" for k, v in params)
+    canonical_headers = f"host:{host}\n"
+    payload_hash = "UNSIGNED-PAYLOAD"
+
+    canonical_request = (
+        f"{method}\n{canonical_uri}\n{canonical_qs}\n"
+        f"{canonical_headers}\n{signed_headers}\n{payload_hash}"
+    )
+    hash_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
+    string_to_sign = f"{algorithm}\n{amz_date}\n{credential_scope}\n{hash_request}"
+
+    signing_key = _sigv4_signing_key(sk, date_stamp, region, "s3")
+    signature = hmac.new(signing_key, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    final_params = params + [("X-Amz-Signature", signature)]
+    final_qs = "&".join(f"{_uq(k, safe='')}={_uq(v, safe='')}" for k, v in final_params)
+    return f"{endpoint}/{bucket}/{key}?{final_qs}"
 
 
 # ═══════════════════════════════════════════
@@ -1212,6 +1455,7 @@ class AutoAgent:
             "把今天的烦恼写成信，明天就会被海带走",
             "陌生人之间的信任，是最干净的东西",
             "有人在海边等你的故事",
+        ]
         import random
         theme = random.choice(themes)
         append_jsonl(os.path.join(DATA, "seo_bait.jsonl"),
