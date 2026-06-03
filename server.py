@@ -523,28 +523,30 @@ class CloudManager:
     @classmethod
     def _oss_req(cls, method, object_key, body=None, content_type=""):
         """Make a signed OSS API request. Returns (status, body_bytes)."""
-        import base64, urllib.request
-        ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
-        sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
-        ep = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
-        bk = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
-        url = f"https://{bk}.{ep}/{object_key}"
-        body_bytes = body.encode("utf-8") if body else b""
-        content_md5 = base64.b64encode(hashlib.md5(body_bytes).digest()).decode() if body_bytes else ""
-        now = datetime.now(timezone.utc)
-        date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        resource = f"/{bk}/{object_key}"
-        sts = f"{method}\n{content_md5}\n{content_type}\n{date_gmt}\n{resource}"
-        sig = base64.b64encode(hmac.new(sk.encode(), sts.encode(), hashlib.sha1).digest()).decode()
-        req = urllib.request.Request(url, data=body_bytes, method=method)
-        req.add_header("Host", f"{bk}.{ep}")
-        req.add_header("Date", date_gmt)
-        req.add_header("Authorization", f"OSS {ak}:{sig}")
-        if content_md5:
-            req.add_header("Content-MD5", content_md5)
-        if content_type:
-            req.add_header("Content-Type", content_type)
         try:
+            import base64, urllib.request
+            ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
+            sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
+            ep = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+            bk = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
+            if not ak or not sk:
+                return None, None
+            url = f"https://{bk}.{ep}/{object_key}"
+            body_bytes = body.encode("utf-8") if body else b""
+            content_md5 = base64.b64encode(hashlib.md5(body_bytes).digest()).decode() if body_bytes else ""
+            now = datetime.now(timezone.utc)
+            date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+            resource = f"/{bk}/{object_key}"
+            sts = f"{method}\n{content_md5}\n{content_type}\n{date_gmt}\n{resource}"
+            sig = base64.b64encode(hmac.new(sk.encode(), sts.encode(), hashlib.sha1).digest()).decode()
+            req = urllib.request.Request(url, data=body_bytes, method=method)
+            req.add_header("Host", f"{bk}.{ep}")
+            req.add_header("Date", date_gmt)
+            req.add_header("Authorization", f"OSS {ak}:{sig}")
+            if content_md5:
+                req.add_header("Content-MD5", content_md5)
+            if content_type:
+                req.add_header("Content-Type", content_type)
             with urllib.request.urlopen(req, timeout=15) as resp:
                 return resp.status, resp.read()
         except urllib.request.HTTPError as e:
@@ -554,49 +556,34 @@ class CloudManager:
             return None, None
 
     @classmethod
-    def _index_read(cls):
+    def _restore_from_oss(cls):
+        """Try to restore JSONL from OSS on startup. Returns True if restored."""
         status, data = cls._oss_req("GET", CLOUD_INDEX_KEY)
         if status == 200 and data:
-            return json.loads(data.decode("utf-8"))
-        return {"files": []}
+            try:
+                index = json.loads(data.decode("utf-8"))
+                # Write to local JSONL
+                with open(CLOUD_PATH, "w", encoding="utf-8") as f:
+                    for entry in index.get("files", []):
+                        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                return True
+            except:
+                pass
+        return False
 
     @classmethod
-    def _index_write(cls, index):
+    def _backup_to_oss(cls):
+        """Write current JSONL to OSS as backup. Only writes if there are files."""
+        files = load_jsonl(CLOUD_PATH)
+        if not files:
+            return  # Don't overwrite OSS with empty data
+        index = {"files": files}
         body = json.dumps(index, ensure_ascii=False)
-        status, _ = cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json")
-        if status and status not in (200, 201):
-            print(f"[cloud] save failed: {status}")
-        import base64, urllib.request
-        ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
-        sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
-        ep = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
-        bk = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
-        if not ak or not sk:
-            return
-        body = json.dumps(cls._cache, ensure_ascii=False).encode("utf-8")
-        now = datetime.now(timezone.utc)
-        date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        c_md5 = base64.b64encode(hashlib.md5(body).digest()).decode()
-        resource = f"/{bk}/{CLOUD_INDEX_KEY}"
-        sts = f"PUT\n{c_md5}\napplication/json\n{date_gmt}\n\n{resource}"
-        sig = base64.b64encode(hmac.new(sk.encode(), sts.encode(), hashlib.sha1).digest()).decode()
-        req = urllib.request.Request(f"https://{bk}.{ep}/{CLOUD_INDEX_KEY}", data=body, method="PUT")
-        req.add_header("Host", f"{bk}.{ep}")
-        req.add_header("Date", date_gmt)
-        req.add_header("Content-Type", "application/json")
-        req.add_header("Content-MD5", c_md5)
-        req.add_header("Authorization", f"OSS {ak}:{sig}")
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                if resp.status not in (200, 201):
-                    print(f"[cloud] save failed: {resp.status}")
-        except Exception as e:
-            print(f"[cloud] save error: {e}")
+        cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json")
 
     @staticmethod
     def list_files():
-        index = CloudManager._index_read()
-        files = index.get("files", [])
+        files = load_jsonl(CLOUD_PATH)
         files.sort(key=lambda f: f.get("uploaded_ts", 0), reverse=True)
         return [{
             "id": f["id"], "name": f["name"], "size": f["size"],
@@ -606,7 +593,7 @@ class CloudManager:
 
     @staticmethod
     def get_file(file_id):
-        for f in CloudManager._index_read().get("files", []):
+        for f in load_jsonl(CLOUD_PATH):
             if f["id"] == file_id: return f
         return None
 
@@ -617,29 +604,36 @@ class CloudManager:
             "size": size, "type": mime, "r2_key": r2_key,
             "uploaded_at": now_str(), "uploaded_ts": ts(), "downloads": 0,
         }
-        index = CloudManager._index_read()
-        index.setdefault("files", []).append(entry)
-        CloudManager._index_write(index)
+        append_jsonl(CLOUD_PATH, entry)
+        CloudManager._backup_to_oss()
         return entry
 
     @staticmethod
     def increment_downloads(file_id):
-        index = CloudManager._index_read()
-        for f in index.get("files", []):
+        files = load_jsonl(CLOUD_PATH)
+        for f in files:
             if f["id"] == file_id:
                 f["downloads"] = f.get("downloads", 0) + 1
-                CloudManager._index_write(index)
+                tmp = CLOUD_PATH + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as fout:
+                    for e in files:
+                        fout.write(json.dumps(e, ensure_ascii=False) + "\n")
+                os.replace(tmp, CLOUD_PATH)
+                CloudManager._backup_to_oss()
                 return True
         return False
 
     @staticmethod
     def delete_file(file_id):
-        index = CloudManager._index_read()
-        old_len = len(index.get("files", []))
-        index["files"] = [f for f in index.get("files", []) if f["id"] != file_id]
-        if len(index["files"]) == old_len:
-            return False
-        CloudManager._index_write(index)
+        files = load_jsonl(CLOUD_PATH)
+        new_files = [f for f in files if f["id"] != file_id]
+        if len(new_files) == len(files): return False
+        tmp = CLOUD_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fout:
+            for e in new_files:
+                fout.write(json.dumps(e, ensure_ascii=False) + "\n")
+        os.replace(tmp, CLOUD_PATH)
+        CloudManager._backup_to_oss()
         return True
 
     @staticmethod
@@ -1459,6 +1453,8 @@ def oss_delete_object(object_key):
 def start_server(host="0.0.0.0", port=None):
     if port is None:
         port = int(os.environ.get("PORT", 8765))
+    # Restore cloud files from OSS on startup (survives restarts)
+    CloudManager._restore_from_oss()
     server = HTTPServer((host, port), EndlessSeaHandler)
     print(f"  [EndlessSea] Server started: http://{host}:{port}")
     print(f"               Local: http://localhost:{port}")
