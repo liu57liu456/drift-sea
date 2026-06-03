@@ -535,7 +535,7 @@ class CloudManager:
         now = datetime.now(timezone.utc)
         date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
         resource = f"/{bk}/{object_key}"
-        sts = f"{method}\n{content_md5}\n{content_type}\n{date_gmt}\n\n{resource}"
+        sts = f"{method}\n{content_md5}\n{content_type}\n{date_gmt}\n{resource}"
         sig = base64.b64encode(hmac.new(sk.encode(), sts.encode(), hashlib.sha1).digest()).decode()
         req = urllib.request.Request(url, data=body_bytes, method=method)
         req.add_header("Host", f"{bk}.{ep}")
