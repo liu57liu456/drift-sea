@@ -1365,7 +1365,7 @@ def oss_presigned_url(method, object_key, expires=300):
     exp = int(now.timestamp()) + expires
 
     resource = f"/{bucket}/{object_key}"
-    string_to_sign = f"{method}\n\n\n{exp}\n\n{resource}"
+    string_to_sign = f"{method}\n\n\n{exp}\n{resource}"
     h = hmac.new(sk.encode(), string_to_sign.encode(), hashlib.sha1).digest()
     import base64
     sig = _uq(base64.b64encode(h).decode(), safe='')
