@@ -1037,7 +1037,7 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             file_id = path.rsplit("/", 1)[-1]
             f = CloudManager.get_file(file_id)
             if not f: return self._send_json({"error": "文件不存在"}, 404)
-            url = r2_presigned_url("GET", f["r2_key"], expires=3600)
+            url = oss_presigned_url("GET", f["r2_key"], expires=3600)
             if not url: return self._send_json({"error": "R2 未配置"}, 500)
             CloudManager.increment_downloads(file_id)
             self.send_response(302)
@@ -1093,7 +1093,7 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             if ext not in CLOUD_ALLOWED_EXT:
                 return self._send_json({"error": f"不支持的文件类型: {ext}"}, 400)
             r2_key = "cloud_" + uuid.uuid4().hex + ext
-            url = r2_presigned_url("PUT", r2_key, expires=300)
+            url = oss_presigned_url("PUT", r2_key, expires=300)
             if not url: return self._send_json({"error": "R2 未配置"}, 500)
             entry = CloudManager.add_file(name, int(size), mime, r2_key)
             CloudManager.audit("upload", name, ip)
@@ -1349,57 +1349,28 @@ class PulseAgent:
 
 
 # ═══════════════════════════════════════════
-# CLOUD: R2 Presigned URL (AWS SigV4, pure stdlib)
+# CLOUD: OSS Presigned URL (pure stdlib)
 # ═══════════════════════════════════════════
 
-def _sigv4_sign(key, msg):
-    return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
-
-def _sigv4_signing_key(secret_key, date_stamp, region, service):
-    k_date = _sigv4_sign(("AWS4" + secret_key).encode("utf-8"), date_stamp)
-    k_region = _sigv4_sign(k_date, region)
-    k_service = _sigv4_sign(k_region, service)
-    return _sigv4_sign(k_service, "aws4_request")
-
-def r2_presigned_url(method, key, expires=300):
-    ak = os.environ.get("R2_ACCESS_KEY_ID", "")
-    sk = os.environ.get("R2_SECRET_ACCESS_KEY", "")
-    endpoint = os.environ.get("R2_ENDPOINT", "").rstrip("/")
-    bucket = os.environ.get("R2_BUCKET", "endless-sea-cloud")
-    region = "auto"
-    if not ak or not sk or not endpoint:
+def oss_presigned_url(method, object_key, expires=300):
+    ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
+    sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
+    endpoint = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+    bucket = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
+    if not ak or not sk:
         return None
+
     from urllib.parse import quote as _uq
     now = datetime.now(timezone.utc)
-    amz_date = now.strftime("%Y%m%dT%H%M%SZ")
-    date_stamp = now.strftime("%Y%m%d")
-    credential_scope = f"{date_stamp}/{region}/s3/aws4_request"
-    algorithm = "AWS4-HMAC-SHA256"
-    credential = f"{ak}/{credential_scope}"
-    canonical_uri = f"/{bucket}/{key}"
-    signed_headers = "host"
-    host = urlparse(endpoint).netloc
-    params = [
-        ("X-Amz-Algorithm", algorithm),
-        ("X-Amz-Credential", credential),
-        ("X-Amz-Date", amz_date),
-        ("X-Amz-Expires", str(expires)),
-        ("X-Amz-SignedHeaders", signed_headers),
-    ]
-    canonical_qs = "&".join(f"{_uq(k, safe='')}={_uq(v, safe='')}" for k, v in params)
-    canonical_headers = f"host:{host}\n"
-    payload_hash = "UNSIGNED-PAYLOAD"
-    canonical_request = (
-        f"{method}\n{canonical_uri}\n{canonical_qs}\n"
-        f"{canonical_headers}\n{signed_headers}\n{payload_hash}"
-    )
-    hash_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
-    string_to_sign = f"{algorithm}\n{amz_date}\n{credential_scope}\n{hash_request}"
-    signing_key = _sigv4_signing_key(sk, date_stamp, region, "s3")
-    signature = hmac.new(signing_key, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
-    final_params = params + [("X-Amz-Signature", signature)]
-    final_qs = "&".join(f"{_uq(k, safe='')}={_uq(v, safe='')}" for k, v in final_params)
-    return f"{endpoint}/{bucket}/{key}?{final_qs}"
+    exp = int(now.timestamp()) + expires
+
+    resource = f"/{bucket}/{object_key}"
+    string_to_sign = f"{method}\n\n\n{exp}\n\n{resource}"
+    h = hmac.new(sk.encode(), string_to_sign.encode(), hashlib.sha1).digest()
+    import base64
+    sig = _uq(base64.b64encode(h).decode(), safe='')
+
+    return f"https://{bucket}.{endpoint}/{object_key}?OSSAccessKeyId={ak}&Expires={exp}&Signature={sig}"
 
 
 def start_server(host="0.0.0.0", port=None):
