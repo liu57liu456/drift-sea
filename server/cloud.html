@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="night">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云盘 · 无尽海</title>
+<style>
+:root {
+  --radius: 14px; --radius-sm: 8px;
+  --font: "PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+[data-theme="night"] {
+  --sea-deep: #0a1628; --sea-mid: #0f2040;
+  --text: #d0dce8; --text-dim: #7090b0; --text-bright: #f0f4f8;
+  --surface: rgba(15,30,55,0.88); --surface2: rgba(20,45,75,0.9);
+  --border: rgba(100,150,200,0.2);
+  --accent: #5b8cc0; --coral: #e8735a; --gold: #d4b87a;
+  --input-bg: rgba(15,30,55,0.85);
+  --input-text: #f0f4f8;
+  --bg: linear-gradient(180deg, #0a1628 0%, #0f2040 40%, #1a3a5c 100%);
+}
+[data-theme="day"] {
+  --sea-deep: #f5f0e8; --sea-mid: #e8e0d0;
+  --text: #3a3028; --text-dim: #8a7a6a; --text-bright: #1a1008;
+  --surface: rgba(255,248,235,0.88); --surface2: rgba(245,235,215,0.9);
+  --border: rgba(150,130,100,0.25);
+  --accent: #5a8a60; --coral: #c06040; --gold: #b09050;
+  --input-bg: rgba(255,250,240,0.9);
+  --input-text: #3a3028;
+  --bg: linear-gradient(180deg, #f5f0e8 0%, #e8e0d0 50%, #d8d0c0 100%);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font); background: var(--bg);
+  color: var(--text); min-height: 100vh; line-height: 1.6;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 20px; max-width: 700px; margin: 0 auto;
+}
+.topbar a { font-size: 0.9em; color: var(--text-dim); }
+.theme-btn {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-size: 1.2em; cursor: pointer; padding: 4px 10px;
+}
+
+.container { max-width: 700px; margin: 0 auto; padding: 0 20px 60px; }
+.header { text-align: center; padding: 30px 0 20px; }
+.header h1 { font-size: 1.8em; color: var(--text-bright); margin-bottom: 6px; }
+.header p { color: var(--text-dim); font-size: 0.9em; }
+
+.toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.btn {
+  padding: 10px 22px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  cursor: pointer; font-size: 0.95em; font-family: var(--font);
+  background: var(--surface); color: var(--text); transition: all 0.15s;
+}
+.btn:hover { border-color: var(--accent); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { opacity: 0.9; }
+.btn-danger { color: var(--coral); border-color: var(--coral); }
+
+.file-list { display: flex; flex-direction: column; gap: 8px; }
+.file-card {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: var(--surface); border-radius: var(--radius);
+  border: 1px solid var(--border); transition: border-color 0.15s;
+}
+.file-card:hover { border-color: var(--accent); }
+.file-icon { font-size: 1.6em; flex-shrink: 0; width: 40px; text-align: center; }
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-weight: 500; color: var(--text-bright); word-break: break-all; }
+.file-meta { font-size: 0.8em; color: var(--text-dim); margin-top: 2px; }
+.file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.file-actions button {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); cursor: pointer; padding: 6px 12px; font-size: 0.85em;
+  font-family: var(--font); transition: all 0.15s;
+}
+.file-actions button:hover { border-color: var(--accent); }
+.file-actions .del-btn:hover { border-color: var(--coral); color: var(--coral); }
+
+.empty {
+  text-align: center; padding: 60px 20px; color: var(--text-dim);
+}
+.empty .emoji { font-size: 3em; margin-bottom: 12px; }
+
+.overlay {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.6); justify-content: center; align-items: center;
+}
+.overlay.show { display: flex; }
+.card {
+  background: var(--surface2); border-radius: var(--radius); padding: 30px 24px;
+  max-width: 360px; width: 90%; text-align: center; border: 1px solid var(--border);
+}
+.card h3 { margin-bottom: 16px; color: var(--text-bright); }
+.card input[type="password"], .card input[type="file"] {
+  width: 100%; padding: 12px; font-size: 1em; margin-bottom: 14px;
+  background: var(--input-bg); color: var(--input-text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-family: var(--font);
+}
+.card input[type="password"] {
+  font-size: 1.5em; text-align: center; letter-spacing: 0.5em; max-width: 160px;
+}
+.card .btns { display: flex; gap: 8px; justify-content: center; }
+.card .error { color: var(--coral); font-size: 0.85em; margin-top: 8px; min-height: 1.2em; }
+
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--surface2); color: var(--text-bright); padding: 10px 24px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  font-size: 0.9em; z-index: 200; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+.stats { text-align: center; margin-top: 30px; color: var(--text-dim); font-size: 0.85em; }
+
+.progress {
+  width: 100%; height: 6px; background: var(--border); border-radius: 3px;
+  margin: 10px 0; overflow: hidden; display: none;
+}
+.progress.show { display: block; }
+.progress-bar {
+  height: 100%; background: var(--accent); width: 0%; transition: width 0.2s;
+}
+
+@media (max-width: 480px) {
+  .file-card { gap: 8px; padding: 10px 12px; }
+  .file-actions button { padding: 4px 8px; font-size: 0.8em; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/">← 返回无尽海</a>
+  <button class="theme-btn" onclick="toggleTheme()" title="切换主题">🌓</button>
+</div>
+
+<div class="container">
+  <div class="header">
+    <h1>☁️ 云盘</h1>
+    <p>查看不需要密码 · 上传和删除需要密码</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="showUpload()">📤 上传文件</button>
+    <button class="btn" onclick="loadFiles()">🔄 刷新</button>
+  </div>
+
+  <div id="fileList" class="file-list"></div>
+  <div id="empty" class="empty" style="display:none">
+    <div class="emoji">📂</div>
+    <p>还没有文件</p>
+    <p style="font-size:0.85em;margin-top:4px">点击"上传文件"开始</p>
+  </div>
+
+  <div class="stats" id="stats"></div>
+</div>
+
+<!-- Upload overlay -->
+<div class="overlay" id="uploadOverlay">
+  <div class="card">
+    <h3>📤 上传文件</h3>
+    <input type="file" id="fileInput" style="display:block">
+    <input type="password" id="uploadPin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="····">
+    <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <p style="font-size:0.8em;color:var(--text-dim);margin-bottom:10px" id="progressText"></p>
+    <div class="btns">
+      <button class="btn btn-primary" onclick="doUpload()">确认上传</button>
+      <button class="btn" onclick="closeUpload()">取消</button>
+    </div>
+    <div class="error" id="uploadError"></div>
+  </div>
+</div>
+
+<!-- Delete confirm overlay -->
+<div class="overlay" id="deleteOverlay">
+  <div class="card">
+    <h3>🗑️ 删除文件</h3>
+    <p style="margin-bottom:14px;color:var(--text-dim)" id="deleteFileName"></p>
+    <input type="password" id="deletePin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="····">
+    <div class="btns">
+      <button class="btn btn-danger" onclick="doDelete()">确认删除</button>
+      <button class="btn" onclick="closeDelete()">取消</button>
+    </div>
+    <div class="error" id="deleteError"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Theme ──
+function getTheme() {
+  const saved = localStorage.getItem("endless-sea-theme");
+  if (saved === "day" || saved === "night") return saved;
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "day" : "night";
+}
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t); }
+function toggleTheme() {
+  const next = getTheme() === "night" ? "day" : "night";
+  localStorage.setItem("endless-sea-theme", next);
+  applyTheme(next);
+}
+applyTheme(getTheme());
+
+// ── Toast ──
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+}
+
+// ── Format ──
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / 1048576).toFixed(1) + " MB";
+}
+function fileIcon(type) {
+  if (!type) return "📄";
+  if (type.startsWith("image/")) return "🖼️";
+  if (type.includes("pdf")) return "📕";
+  if (type.includes("zip") || type.includes("rar") || type.includes("7z") || type.includes("tar") || type.includes("gz")) return "📦";
+  if (type.startsWith("audio/")) return "🎵";
+  if (type.startsWith("video/")) return "🎬";
+  if (type.includes("text") || type.includes("javascript") || type.includes("json") || type.includes("xml") || type.includes("csv")) return "📝";
+  if (type.includes("word") || type.includes("document")) return "📘";
+  if (type.includes("sheet") || type.includes("excel")) return "📊";
+  if (type.includes("presentation") || type.includes("powerpoint")) return "📽️";
+  return "📄";
+}
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Files ──
+async function loadFiles() {
+  const list = document.getElementById("fileList");
+  const empty = document.getElementById("empty");
+  list.innerHTML = "";
+  try {
+    const resp = await fetch("/api/cloud/files");
+    const data = await resp.json();
+    const files = data.files || [];
+    if (files.length === 0) {
+      list.style.display = "none"; empty.style.display = "block";
+    } else {
+      list.style.display = "flex"; empty.style.display = "none";
+      let total = 0;
+      files.forEach(f => {
+        total += f.size;
+        const card = document.createElement("div");
+        card.className = "file-card";
+        card.dataset.fileId = f.id;
+        card.dataset.fileName = f.name;
+        card.innerHTML =
+          `<div class="file-icon">${fileIcon(f.type)}</div>
+           <div class="file-info">
+             <div class="file-name">${escapeHtml(f.name)}</div>
+             <div class="file-meta">${formatSize(f.size)} · ${f.uploaded_at} · 已下载 ${f.downloads} 次</div>
+           </div>
+           <div class="file-actions">
+             <a href="/api/cloud/dl/${f.id}" class="btn" style="text-decoration:none;font-size:0.85em;padding:6px 12px">⬇ 下载</a>
+             <button class="del-btn" data-action="delete" data-file-id="${f.id}" data-file-name="${escapeHtml(f.name)}">🗑</button>
+           </div>`;
+        list.appendChild(card);
+      });
+      document.getElementById("stats").textContent =
+        `共 ${files.length} 个文件 · ${formatSize(total)}`;
+    }
+  } catch (e) {
+    toast("加载失败: " + e.message);
+  }
+}
+
+// ── Event delegation for delete buttons ──
+document.getElementById("fileList").addEventListener("click", function(e) {
+  const btn = e.target.closest("[data-action='delete']");
+  if (!btn) return;
+  showDelete(btn.dataset.fileId, btn.dataset.fileName);
+});
+
+// ── Upload ──
+function showUpload() {
+  document.getElementById("uploadOverlay").classList.add("show");
+  document.getElementById("uploadPin").value = "";
+  document.getElementById("uploadError").textContent = "";
+  document.getElementById("fileInput").value = "";
+  document.getElementById("progress").classList.remove("show");
+  document.getElementById("progressText").textContent = "";
+}
+function closeUpload() {
+  document.getElementById("uploadOverlay").classList.remove("show");
+}
+
+async function doUpload() {
+  const fileInput = document.getElementById("fileInput");
+  const file = fileInput.files[0];
+  const pin = document.getElementById("uploadPin").value;
+  const errEl = document.getElementById("uploadError");
+  errEl.textContent = "";
+
+  if (!file) { errEl.textContent = "请选择文件"; return; }
+  if (file.size > 100 * 1024 * 1024) { errEl.textContent = "文件超过 100MB 上限"; return; }
+  if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) { errEl.textContent = "请输入4位数字密码"; return; }
+
+  const progress = document.getElementById("progress");
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+  progress.classList.add("show");
+  progressBar.style.width = "10%";
+  progressText.textContent = "正在获取上传链接...";
+
+  try {
+    // Step 1: get presigned URL
+    const resp = await fetch("/api/cloud/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin, name: file.name, size: file.size, type: file.type }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) { errEl.textContent = data.error || "请求失败"; progress.classList.remove("show"); return; }
+
+    progressBar.style.width = "30%";
+    progressText.textContent = "正在上传到云端...";
+
+    // Step 2: upload directly to R2
+    const putResp = await fetch(data.upload_url, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+    });
+    if (!putResp.ok) {
+      errEl.textContent = "上传到存储失败 (HTTP " + putResp.status + ")";
+      progress.classList.remove("show");
+      return;
+    }
+
+    progressBar.style.width = "100%";
+    progressText.textContent = "上传完成！";
+    setTimeout(() => {
+      closeUpload();
+      progress.classList.remove("show");
+      loadFiles();
+      toast("✅ " + file.name + " 上传成功");
+    }, 500);
+  } catch (e) {
+    errEl.textContent = "网络错误: " + e.message;
+    progress.classList.remove("show");
+  }
+}
+
+// ── Delete ──
+let deleteFileId = "";
+function showDelete(id, name) {
+  deleteFileId = id;
+  document.getElementById("deleteFileName").textContent = "确定删除 " + name + " ？";
+  document.getElementById("deletePin").value = "";
+  document.getElementById("deleteError").textContent = "";
+  document.getElementById("deleteOverlay").classList.add("show");
+}
+function closeDelete() {
+  document.getElementById("deleteOverlay").classList.remove("show");
+}
+
+async function doDelete() {
+  const pin = document.getElementById("deletePin").value;
+  const errEl = document.getElementById("deleteError");
+  errEl.textContent = "";
+  if (!pin || !/^\d{4}$/.test(pin)) { errEl.textContent = "请输入4位数字密码"; return; }
+  try {
+    const resp = await fetch("/api/cloud/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin, file_id: deleteFileId }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) { errEl.textContent = data.error || "删除失败"; return; }
+    closeDelete();
+    loadFiles();
+    toast("已删除");
+  } catch (e) {
+    errEl.textContent = "网络错误: " + e.message;
+  }
+}
+
+// ── Init ──
+loadFiles();
+</script>
+</body>
+</html>
