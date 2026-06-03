@@ -70,6 +70,7 @@ CLOUD_ALLOWED_EXT = {
     ".py", ".js", ".html", ".css", ".json", ".xml", ".csv", ".log",
     ".c", ".cpp", ".h", ".java", ".go", ".rs",
     ".ipynb", ".sql", ".yaml", ".yml", ".toml",
+    ".bat", ".ps1", ".sh",
 }
 
 # ── Content filter ──
