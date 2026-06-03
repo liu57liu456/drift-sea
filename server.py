@@ -522,35 +522,57 @@ class CloudManager:
     _cache = None
 
     @classmethod
+    def _oss_req(cls, method, object_key, body=None, content_type=""):
+        """Make a signed OSS API request. Returns (status, body_bytes)."""
+        import base64, urllib.request
+        ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
+        sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
+        ep = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+        bk = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
+        url = f"https://{bk}.{ep}/{object_key}"
+        body_bytes = body.encode("utf-8") if body else b""
+        content_md5 = base64.b64encode(hashlib.md5(body_bytes).digest()).decode() if body_bytes else ""
+        now = datetime.now(timezone.utc)
+        date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        resource = f"/{bk}/{object_key}"
+        sts = f"{method}\n{content_md5}\n{content_type}\n{date_gmt}\n\n{resource}"
+        sig = base64.b64encode(hmac.new(sk.encode(), sts.encode(), hashlib.sha1).digest()).decode()
+        req = urllib.request.Request(url, data=body_bytes, method=method)
+        req.add_header("Host", f"{bk}.{ep}")
+        req.add_header("Date", date_gmt)
+        req.add_header("Authorization", f"OSS {ak}:{sig}")
+        if content_md5:
+            req.add_header("Content-MD5", content_md5)
+        if content_type:
+            req.add_header("Content-Type", content_type)
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return resp.status, resp.read()
+        except urllib.request.HTTPError as e:
+            return e.code, e.read()
+        except Exception as e:
+            print(f"[cloud] OSS error: {e}")
+            return None, None
+
+    @classmethod
     def _load(cls):
         if cls._cache is not None:
             return cls._cache
-        try:
-            ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
-            sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
-            ep = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
-            bk = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
-            if ak and sk:
-                import base64, urllib.request
-                now = datetime.now(timezone.utc)
-                date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-                resource = f"/{bk}/{CLOUD_INDEX_KEY}"
-                sts = f"GET\n\n\n{date_gmt}\n\n{resource}"
-                sig = base64.b64encode(hmac.new(sk.encode(), sts.encode(), hashlib.sha1).digest()).decode()
-                req = urllib.request.Request(f"https://{bk}.{ep}/{CLOUD_INDEX_KEY}")
-                req.add_header("Host", f"{bk}.{ep}")
-                req.add_header("Date", date_gmt)
-                req.add_header("Authorization", f"OSS {ak}:{sig}")
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    cls._cache = json.loads(resp.read().decode("utf-8"))
-        except:
-            pass
-        if cls._cache is None:
+        status, data = cls._oss_req("GET", CLOUD_INDEX_KEY)
+        if status == 200 and data:
+            cls._cache = json.loads(data.decode("utf-8"))
+        elif status == 404:
+            cls._cache = {"files": []}
+        else:
             cls._cache = {"files": []}
         return cls._cache
 
     @classmethod
     def _save(cls):
+        body = json.dumps(cls._cache, ensure_ascii=False)
+        status, _ = cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json")
+        if status and status not in (200, 201):
+            print(f"[cloud] save failed: {status}")
         import base64, urllib.request
         ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
         sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
@@ -1437,33 +1459,8 @@ def oss_presigned_url(method, object_key, content_type="", expires=300):
 
 def oss_delete_object(object_key):
     """Delete an object from OSS. Returns True on success."""
-    import urllib.request
-    import base64
-    ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
-    sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
-    endpoint = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
-    bucket = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
-    if not ak or not sk:
-        return False
-
-    from urllib.parse import quote as _uq
-    import base64
-    now = datetime.now(timezone.utc)
-    date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-    resource = f"/{bucket}/{object_key}"
-    string_to_sign = f"DELETE\n\n\n{date_gmt}\n\n{resource}"
-    signature = base64.b64encode(hmac.new(sk.encode(), string_to_sign.encode(), hashlib.sha1).digest()).decode()
-    auth = f"OSS {ak}:{signature}"
-
-    req = urllib.request.Request(f"https://{bucket}.{endpoint}/{object_key}", method="DELETE")
-    req.add_header("Host", f"{bucket}.{endpoint}")
-    req.add_header("Date", date_gmt)
-    req.add_header("Authorization", auth)
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return resp.status in (200, 204)
-    except Exception:
-        return False
+    status, _ = CloudManager._oss_req("DELETE", object_key)
+    return status in (200, 204)
 
 
 def start_server(host="0.0.0.0", port=None):
