@@ -1038,7 +1038,7 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             f = CloudManager.get_file(file_id)
             if not f: return self._send_json({"error": "文件不存在"}, 404)
             url = oss_presigned_url("GET", f["r2_key"], expires=3600)
-            if not url: return self._send_json({"error": "R2 未配置"}, 500)
+            if not url: return self._send_json({"error": "OSS 未配置"}, 500)
             CloudManager.increment_downloads(file_id)
             self.send_response(302)
             self.send_header("Location", url)
@@ -1094,7 +1094,7 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
                 return self._send_json({"error": f"不支持的文件类型: {ext}"}, 400)
             r2_key = "cloud_" + uuid.uuid4().hex + ext
             url = oss_presigned_url("PUT", r2_key, expires=300)
-            if not url: return self._send_json({"error": "R2 未配置"}, 500)
+            if not url: return self._send_json({"error": "OSS 未配置"}, 500)
             entry = CloudManager.add_file(name, int(size), mime, r2_key)
             CloudManager.audit("upload", name, ip)
             return self._send_json({"upload_url": url, "file": entry})
