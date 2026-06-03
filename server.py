@@ -573,13 +573,15 @@ class CloudManager:
 
     @classmethod
     def _backup_to_oss(cls):
-        """Write current JSONL to OSS as backup. Only writes if there are files."""
+        """Fire-and-forget: write JSONL to OSS in background thread."""
         files = load_jsonl(CLOUD_PATH)
         if not files:
-            return  # Don't overwrite OSS with empty data
+            return
         index = {"files": files}
         body = json.dumps(index, ensure_ascii=False)
-        cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json")
+        import threading
+        t = threading.Thread(target=lambda: cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json"), daemon=True)
+        t.start()
 
     @staticmethod
     def list_files():
