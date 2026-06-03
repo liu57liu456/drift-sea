@@ -1088,7 +1088,7 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
             if not name: return self._send_json({"error": "文件名不能为空"}, 400)
             if not isinstance(size, (int, float)) or size <= 0:
                 return self._send_json({"error": "文件大小无效"}, 400)
-            if size > 100 * 1024 * 1024:
+            if size > 200 * 1024 * 1024:
                 return self._send_json({"error": "文件超过 100MB 上限"}, 400)
             ext = os.path.splitext(name)[1].lower()
             if ext not in CLOUD_ALLOWED_EXT:
