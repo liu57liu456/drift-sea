@@ -519,7 +519,6 @@ CLOUD_INDEX_KEY = "cloud_index.json"
 
 class CloudManager:
     """File metadata stored on OSS (survives Render restarts)."""
-    _cache = None
 
     @classmethod
     def _oss_req(cls, method, object_key, body=None, content_type=""):
@@ -555,21 +554,15 @@ class CloudManager:
             return None, None
 
     @classmethod
-    def _load(cls):
-        if cls._cache is not None:
-            return cls._cache
+    def _index_read(cls):
         status, data = cls._oss_req("GET", CLOUD_INDEX_KEY)
         if status == 200 and data:
-            cls._cache = json.loads(data.decode("utf-8"))
-        elif status == 404:
-            cls._cache = {"files": []}
-        else:
-            cls._cache = {"files": []}
-        return cls._cache
+            return json.loads(data.decode("utf-8"))
+        return {"files": []}
 
     @classmethod
-    def _save(cls):
-        body = json.dumps(cls._cache, ensure_ascii=False)
+    def _index_write(cls, index):
+        body = json.dumps(index, ensure_ascii=False)
         status, _ = cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json")
         if status and status not in (200, 201):
             print(f"[cloud] save failed: {status}")
@@ -602,8 +595,8 @@ class CloudManager:
 
     @staticmethod
     def list_files():
-        data = CloudManager._load()
-        files = data.get("files", [])
+        index = CloudManager._index_read()
+        files = index.get("files", [])
         files.sort(key=lambda f: f.get("uploaded_ts", 0), reverse=True)
         return [{
             "id": f["id"], "name": f["name"], "size": f["size"],
@@ -613,7 +606,7 @@ class CloudManager:
 
     @staticmethod
     def get_file(file_id):
-        for f in CloudManager._load().get("files", []):
+        for f in CloudManager._index_read().get("files", []):
             if f["id"] == file_id: return f
         return None
 
@@ -624,29 +617,29 @@ class CloudManager:
             "size": size, "type": mime, "r2_key": r2_key,
             "uploaded_at": now_str(), "uploaded_ts": ts(), "downloads": 0,
         }
-        data = CloudManager._load()
-        data.setdefault("files", []).append(entry)
-        CloudManager._save()
+        index = CloudManager._index_read()
+        index.setdefault("files", []).append(entry)
+        CloudManager._index_write(index)
         return entry
 
     @staticmethod
     def increment_downloads(file_id):
-        data = CloudManager._load()
-        for f in data.get("files", []):
+        index = CloudManager._index_read()
+        for f in index.get("files", []):
             if f["id"] == file_id:
                 f["downloads"] = f.get("downloads", 0) + 1
-                CloudManager._save()
+                CloudManager._index_write(index)
                 return True
         return False
 
     @staticmethod
     def delete_file(file_id):
-        data = CloudManager._load()
-        old_len = len(data.get("files", []))
-        data["files"] = [f for f in data.get("files", []) if f["id"] != file_id]
-        if len(data["files"]) == old_len:
+        index = CloudManager._index_read()
+        old_len = len(index.get("files", []))
+        index["files"] = [f for f in index.get("files", []) if f["id"] != file_id]
+        if len(index["files"]) == old_len:
             return False
-        CloudManager._save()
+        CloudManager._index_write(index)
         return True
 
     @staticmethod
