@@ -1110,9 +1110,13 @@ class EndlessSeaHandler(BaseHTTPRequestHandler):
                 CloudManager.record_attempt(ip)
                 return self._send_json({"error": "密码错误"}, 403)
             file_id = data.get("file_id", "")
-            ok = CloudManager.delete_file(file_id)
-            if not ok: return self._send_json({"error": "文件不存在"}, 404)
-            CloudManager.audit("delete", file_id, ip)
+            f = CloudManager.get_file(file_id)
+            if not f: return self._send_json({"error": "文件不存在"}, 404)
+            # Delete OSS object
+            oss_delete_object(f["r2_key"])
+            # Delete DB record
+            CloudManager.delete_file(file_id)
+            CloudManager.audit("delete", f["name"], ip)
             return self._send_json({"deleted": True})
 
         if not token:
@@ -1372,6 +1376,36 @@ def oss_presigned_url(method, object_key, content_type="", expires=300):
     sig = _uq(base64.b64encode(h).decode(), safe='')
 
     return f"https://{bucket}.{endpoint}/{object_key}?OSSAccessKeyId={ak}&Expires={exp}&Signature={sig}"
+
+def oss_delete_object(object_key):
+    """Delete an object from OSS. Returns True on success."""
+    import urllib.request
+    import base64
+    ak = os.environ.get("OSS_ACCESS_KEY_ID", "")
+    sk = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
+    endpoint = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+    bucket = os.environ.get("OSS_BUCKET", "endless-sea-cloud")
+    if not ak or not sk:
+        return False
+
+    from urllib.parse import quote as _uq
+    import base64
+    now = datetime.now(timezone.utc)
+    date_gmt = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    resource = f"/{bucket}/{object_key}"
+    string_to_sign = f"DELETE\n\n\n{date_gmt}\n\n{resource}"
+    signature = base64.b64encode(hmac.new(sk.encode(), string_to_sign.encode(), hashlib.sha1).digest()).decode()
+    auth = f"OSS {ak}:{signature}"
+
+    req = urllib.request.Request(f"https://{bucket}.{endpoint}/{object_key}", method="DELETE")
+    req.add_header("Host", f"{bucket}.{endpoint}")
+    req.add_header("Date", date_gmt)
+    req.add_header("Authorization", auth)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.status in (200, 204)
+    except Exception:
+        return False
 
 
 def start_server(host="0.0.0.0", port=None):
