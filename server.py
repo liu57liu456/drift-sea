@@ -557,36 +557,49 @@ class CloudManager:
 
     @classmethod
     def _restore_from_oss(cls):
-        """Try to restore JSONL from OSS on startup."""
+        """Try to restore JSONL from OSS using presigned GET URL."""
         try:
-            status, data = cls._oss_req("GET", CLOUD_INDEX_KEY)
-            if status == 200 and data:
-                index = json.loads(data.decode("utf-8"))
-                entries = index.get("files", [])
-                if entries:
-                    with open(CLOUD_PATH, "w", encoding="utf-8") as f:
-                        for entry in entries:
-                            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-                    print(f"[cloud] Restored {len(entries)} files from OSS")
-                    return
+            url = oss_presigned_url("GET", CLOUD_INDEX_KEY, expires=30)
+            if not url:
+                return
+            import urllib.request
+            with urllib.request.urlopen(url, timeout=15) as resp:
+                if resp.status == 200:
+                    index = json.loads(resp.read().decode("utf-8"))
+                    entries = index.get("files", [])
+                    if entries:
+                        with open(CLOUD_PATH, "w", encoding="utf-8") as f:
+                            for entry in entries:
+                                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                        print(f"[cloud] Restored {len(entries)} files from OSS")
         except Exception as e:
             print(f"[cloud] Restore error: {e}")
-        print("[cloud] No OSS backup found, starting fresh")
 
     @classmethod
     def _backup_to_oss(cls, sync=False):
-        """Write JSONL to OSS. sync=True blocks until confirmed."""
+        """Write JSONL to OSS using presigned PUT URL."""
         files = load_jsonl(CLOUD_PATH)
         if not files:
             return
         index = {"files": files}
         body = json.dumps(index, ensure_ascii=False)
+        url = oss_presigned_url("PUT", CLOUD_INDEX_KEY, content_type="application/json", expires=30)
+        if not url:
+            return
+        def _put():
+            try:
+                import urllib.request
+                req = urllib.request.Request(url, data=body.encode("utf-8"), method="PUT")
+                req.add_header("Content-Type", "application/json")
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    pass
+            except Exception as e:
+                print(f"[cloud] Backup error: {e}")
         if sync:
-            cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json")
+            _put()
         else:
             import threading
-            t = threading.Thread(target=lambda: cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json"), daemon=True)
-            t.start()
+            t = threading.Thread(target=_put, daemon=True); t.start()
 
     @staticmethod
     def list_files():
