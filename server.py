@@ -574,16 +574,19 @@ class CloudManager:
         print("[cloud] No OSS backup found, starting fresh")
 
     @classmethod
-    def _backup_to_oss(cls):
-        """Fire-and-forget: write JSONL to OSS in background thread."""
+    def _backup_to_oss(cls, sync=False):
+        """Write JSONL to OSS. sync=True blocks until confirmed."""
         files = load_jsonl(CLOUD_PATH)
         if not files:
             return
         index = {"files": files}
         body = json.dumps(index, ensure_ascii=False)
-        import threading
-        t = threading.Thread(target=lambda: cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json"), daemon=True)
-        t.start()
+        if sync:
+            cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json")
+        else:
+            import threading
+            t = threading.Thread(target=lambda: cls._oss_req("PUT", CLOUD_INDEX_KEY, body=body, content_type="application/json"), daemon=True)
+            t.start()
 
     @staticmethod
     def list_files():
@@ -613,7 +616,7 @@ class CloudManager:
             "uploaded_at": now_str(), "uploaded_ts": ts(), "downloads": 0,
         }
         append_jsonl(CLOUD_PATH, entry)
-        CloudManager._backup_to_oss()
+        CloudManager._backup_to_oss(sync=True)
         return entry
 
     @staticmethod
@@ -641,7 +644,7 @@ class CloudManager:
             for e in new_files:
                 fout.write(json.dumps(e, ensure_ascii=False) + "\n")
         os.replace(tmp, CLOUD_PATH)
-        CloudManager._backup_to_oss()
+        CloudManager._backup_to_oss(sync=True)
         return True
 
     @staticmethod
