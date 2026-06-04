@@ -557,19 +557,21 @@ class CloudManager:
 
     @classmethod
     def _restore_from_oss(cls):
-        """Try to restore JSONL from OSS on startup. Returns True if restored."""
-        status, data = cls._oss_req("GET", CLOUD_INDEX_KEY)
-        if status == 200 and data:
-            try:
+        """Try to restore JSONL from OSS on startup."""
+        try:
+            status, data = cls._oss_req("GET", CLOUD_INDEX_KEY)
+            if status == 200 and data:
                 index = json.loads(data.decode("utf-8"))
-                # Write to local JSONL
-                with open(CLOUD_PATH, "w", encoding="utf-8") as f:
-                    for entry in index.get("files", []):
-                        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-                return True
-            except:
-                pass
-        return False
+                entries = index.get("files", [])
+                if entries:
+                    with open(CLOUD_PATH, "w", encoding="utf-8") as f:
+                        for entry in entries:
+                            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                    print(f"[cloud] Restored {len(entries)} files from OSS")
+                    return
+        except Exception as e:
+            print(f"[cloud] Restore error: {e}")
+        print("[cloud] No OSS backup found, starting fresh")
 
     @classmethod
     def _backup_to_oss(cls):
@@ -586,6 +588,10 @@ class CloudManager:
     @staticmethod
     def list_files():
         files = load_jsonl(CLOUD_PATH)
+        if not files:
+            # Local disk is empty — try OSS directly
+            CloudManager._restore_from_oss()
+            files = load_jsonl(CLOUD_PATH)
         files.sort(key=lambda f: f.get("uploaded_ts", 0), reverse=True)
         return [{
             "id": f["id"], "name": f["name"], "size": f["size"],
